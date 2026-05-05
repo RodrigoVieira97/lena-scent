@@ -186,6 +186,11 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
+.sort-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sort-select{flex:1;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-family:'Jost',sans-serif;font-size:12px;color:var(--mid);outline:none;cursor:pointer;}
+.sort-select:focus{border-color:var(--gold);}
+.sort-btn{padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:14px;cursor:pointer;color:var(--mid);transition:all .2s;flex-shrink:0;}
+.sort-btn:hover,.sort-btn.active{background:var(--dark);color:var(--gold);border-color:var(--dark);}
 .loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--light);}
 .spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:12px;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -242,6 +247,17 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
     <div class="section active" id="sec-dashboard"></div>
     <div class="section" id="sec-clientes">
       <div class="search-wrap"><input type="text" id="searchInput" placeholder="Buscar cliente..." oninput="renderCli()"></div>
+      <div class="sort-bar">
+        <select class="sort-select" id="sortSelect" onchange="renderCli()">
+          <option value="saldo_desc">Maior saldo primeiro</option>
+          <option value="saldo_asc">Menor saldo primeiro</option>
+          <option value="nome_asc">Nome A → Z</option>
+          <option value="nome_desc">Nome Z → A</option>
+          <option value="vencido">Vencidos primeiro</option>
+          <option value="valor_desc">Maior compra primeiro</option>
+          <option value="valor_asc">Menor compra primeiro</option>
+        </select>
+      </div>
       <div class="ftabs">
         <div class="ftab active" onclick="setF('todos',this)">Todos</div>
         <div class="ftab" onclick="setF('aberto',this)">Em aberto</div>
@@ -753,7 +769,20 @@ function renderCli() {
   if (cliFilter==='aberto')  list = list.filter(c=>c.s>0.05);
   if (cliFilter==='quitado') list = list.filter(c=>c.s<=0.05&&c.tv>0);
   if (cliFilter==='vencido') list = list.filter(c=>c.v);
-  list.sort((a,b)=>b.s-a.s);
+  const sort = document.getElementById('sortSelect')?.value || 'saldo_desc';
+  if (sort === 'saldo_desc')  list.sort((a,b) => b.s - a.s);
+  else if (sort === 'saldo_asc')   list.sort((a,b) => a.s - b.s);
+  else if (sort === 'nome_asc')    list.sort((a,b) => a.n.localeCompare(b.n, 'pt-BR'));
+  else if (sort === 'nome_desc')   list.sort((a,b) => b.n.localeCompare(a.n, 'pt-BR'));
+  else if (sort === 'valor_desc')  list.sort((a,b) => b.tv - a.tv);
+  else if (sort === 'valor_asc')   list.sort((a,b) => a.tv - b.tv);
+  else if (sort === 'vencido') {
+    list.sort((a,b) => {
+      const av = a.v ? 1 : 0, bv = b.v ? 1 : 0;
+      if (bv !== av) return bv - av; // vencidos primeiro
+      return b.s - a.s; // depois por saldo
+    });
+  }
 
   const el = document.getElementById('cliList');
   if (!list.length){el.innerHTML='<div class="empty">Nenhum cliente encontrado</div>';return;}
