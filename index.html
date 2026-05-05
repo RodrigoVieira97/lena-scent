@@ -427,14 +427,14 @@ function setSyncStatus(status) {
 
 // ── API CALLS ─────────────────────────────────────────────────
 async function apiGet(action, params='') {
-  if (API_URL === 'https://script.google.com/macros/s/AKfycbyaeEGrWU91KGIrS-JUDudBCgpenmWM-ZrpAzO1-wmtFEBz0CTGG8mzkYenh2n3KKKK/exec') return null;
+  if (!API_URL || API_URL.includes('COLE_AQUI')) return null;
   const url = `${API_URL}?action=${action}${params}`;
   const r = await fetch(url);
   return r.json();
 }
 
 async function apiPost(body) {
-  if (API_URL === 'https://script.google.com/macros/s/AKfycbyaeEGrWU91KGIrS-JUDudBCgpenmWM-ZrpAzO1-wmtFEBz0CTGG8mzkYenh2n3KKKK/exec') return {ok:false, error:'API não configurada'};
+  if (!API_URL || API_URL.includes('COLE_AQUI')) return {ok:false, error:'API não configurada'};
   const r = await fetch(API_URL, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
