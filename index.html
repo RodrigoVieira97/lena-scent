@@ -137,6 +137,17 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 /* projeção */
 .proj-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.proj-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:13px 15px;margin-bottom:10px;}
+.proj-card-cur{border-color:var(--gold);background:#fffbf0;}
+.proj-card-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.proj-card-mes{font-weight:600;font-size:14px;min-width:52px;}
+.proj-card-cur .proj-card-mes{color:var(--gold);}
+.proj-mini-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.proj-card-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.proj-col{text-align:center;}
+.proj-col-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--light);margin-bottom:3px;}
+.proj-col-val{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;}
+.proj-pct{font-size:10px;font-family:'Inter',sans-serif;font-weight:400;color:var(--light);}
 .proj-table{width:100%;border-collapse:collapse;table-layout:fixed;}
 .proj-table th{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--light);font-weight:500;padding:6px 8px;text-align:right;border-bottom:2px solid var(--border);background:var(--bg);}
 .proj-table th:first-child{text-align:left;}
@@ -830,12 +841,26 @@ function renderProj() {
     const pctR = m.prov>0?Math.min(100,Math.round(m.receb/m.prov*100)):0;
     const pctO = m.prov>0?Math.min(100,Math.round(m.aberto/m.prov*100)):0;
     const barPct = Math.round(m.prov/maxProv*100);
-    return `<tr class="${cur?'cur-m':''}">
-      <td>${m.label}</td>
-      <td><div class="num">${m.prov>0?BRL(m.prov):'—'}</div>${m.prov>0?`<div class="mini-bar"><div class="mini-fill" style="width:${barPct}%;background:var(--border)"></div></div>`:''}</td>
-      <td><div class="num" style="color:${m.receb>0?'var(--green)':'var(--light)'}">${m.receb>0?BRL(m.receb):'—'}</div>${m.receb>0&&m.prov>0?`<div class="pct-tag">${pctR}%</div>`:''}</td>
-      <td><div class="num" style="color:${m.aberto>0.01?'var(--red)':'var(--green)'}">${m.aberto>0.01?BRL(m.aberto):'<span style="color:var(--green)">✓</span>'}</div>${m.aberto>0.01&&m.prov>0?`<div class="pct-tag">${pctO}%</div>`:''}</td>
-    </tr>`;
+    return `<div class="proj-card${cur?' proj-card-cur':''}">
+      <div class="proj-card-header">
+        <span class="proj-card-mes">${m.label}</span>
+        <div class="proj-mini-bar"><div style="width:${barPct}%;height:100%;background:${cur?'var(--gold)':'var(--border)'};border-radius:2px"></div></div>
+      </div>
+      <div class="proj-card-cols">
+        <div class="proj-col">
+          <div class="proj-col-label">Provisionado</div>
+          <div class="proj-col-val">${m.prov>0?BRL(m.prov):'—'}</div>
+        </div>
+        <div class="proj-col">
+          <div class="proj-col-label">Recebido</div>
+          <div class="proj-col-val" style="color:${m.receb>0?'var(--green)':'var(--light)'}">${m.receb>0?BRL(m.receb):'—'}${m.receb>0&&m.prov>0?` <span class="proj-pct">${pctR}%</span>`:''}</div>
+        </div>
+        <div class="proj-col">
+          <div class="proj-col-label">Em aberto</div>
+          <div class="proj-col-val" style="color:${m.aberto>0.01?'var(--red)':'var(--green)'}">${m.aberto>0.01?BRL(m.aberto):'✓'}${m.aberto>0.01&&m.prov>0?` <span class="proj-pct">${pctO}%</span>`:''}</div>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 
   document.getElementById('sec-projecao').innerHTML = `
@@ -844,18 +869,7 @@ function renderProj() {
       <div class="kpi"><div class="kpi-label">Recebido</div><div class="kpi-value" style="color:var(--green)">${BRL(totalReceb)}</div></div>
       <div class="kpi"><div class="kpi-label">Em aberto</div><div class="kpi-value" style="color:var(--red)">${BRL(totalOpen)}</div></div>
     </div>
-    <div class="block" style="padding:0">
-      <div class="proj-wrap"><table class="proj-table">
-        <thead><tr><th>Mês</th><th>Provisionado</th><th>Recebido</th><th>Em aberto</th></tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot><tr style="background:var(--bg);font-weight:600">
-          <td>Total</td>
-          <td style="text-align:right"><div class="num">${BRL(totalProv)}</div></td>
-          <td style="text-align:right"><div class="num" style="color:var(--green)">${BRL(totalReceb)}</div></td>
-          <td style="text-align:right"><div class="num" style="color:var(--red)">${BRL(totalOpen)}</div></td>
-        </tr></tfoot>
-      </table></div>
-    </div>`;
+    <div>${rows}</div>`;
 }
 
 function renderRank() {
