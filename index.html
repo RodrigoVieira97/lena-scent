@@ -427,14 +427,14 @@ function setSyncStatus(status) {
 
 // ── API CALLS ─────────────────────────────────────────────────
 async function apiGet(action, params='') {
-  if (API_URL === 'COLE_AQUI_A_URL_DO_WEB_APP') return null;
+  if (API_URL === 'https://script.google.com/macros/s/AKfycbyaeEGrWU91KGIrS-JUDudBCgpenmWM-ZrpAzO1-wmtFEBz0CTGG8mzkYenh2n3KKKK/exec') return null;
   const url = `${API_URL}?action=${action}${params}`;
   const r = await fetch(url);
   return r.json();
 }
 
 async function apiPost(body) {
-  if (API_URL === 'COLE_AQUI_A_URL_DO_WEB_APP') return {ok:false, error:'API não configurada'};
+  if (API_URL === 'https://script.google.com/macros/s/AKfycbyaeEGrWU91KGIrS-JUDudBCgpenmWM-ZrpAzO1-wmtFEBz0CTGG8mzkYenh2n3KKKK/exec') return {ok:false, error:'API não configurada'};
   const r = await fetch(API_URL, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
@@ -591,7 +591,7 @@ function renderDemoMode() {
     <div class="empty">
       <div style="font-size:32px;margin-bottom:12px">🔌</div>
       <div style="font-weight:500;margin-bottom:8px">API não configurada</div>
-      <div style="font-size:12px;line-height:1.6">Siga as instruções para conectar ao Google Sheets.<br>Depois substitua <code>COLE_AQUI_A_URL_DO_WEB_APP</code> no HTML.</div>
+      <div style="font-size:12px;line-height:1.6">Siga as instruções para conectar ao Google Sheets.<br>Depois substitua <code>https://script.google.com/macros/s/AKfycbyaeEGrWU91KGIrS-JUDudBCgpenmWM-ZrpAzO1-wmtFEBz0CTGG8mzkYenh2n3KKKK/exec</code> no HTML.</div>
     </div>`;
 }
 
