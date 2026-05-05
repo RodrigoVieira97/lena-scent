@@ -264,7 +264,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 <!-- CLIENT MODAL -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal"><div class="m-handle"></div><div id="modalContent"></div></div>
+  <div class="modal" id="modalBox"><div class="m-handle" onclick="closeModal()"></div><div style="display:flex;justify-content:flex-end;padding:0 17px 4px"><button onclick="closeModal()" style="background:none;border:none;font-size:22px;color:var(--light);cursor:pointer;padding:4px 8px;line-height:1">✕</button></div><div id="modalContent"></div></div>
 </div>
 
 <!-- VENDA SHEET -->
@@ -462,11 +462,11 @@ async function apiPost(body) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-    // Passar cada campo como parâmetro GET (evita CORS preflight do POST)
+    // Manda parâmetros diretos + payload base64 (compatível com GAS v3 e v4)
     const params = new URLSearchParams();
-    for (const [k,v] of Object.entries(body)) {
-      params.append(k, String(v));
-    }
+    for (const [k,v] of Object.entries(body)) params.append(k, String(v));
+    const payload = btoa(unescape(encodeURIComponent(JSON.stringify(body))));
+    params.append('payload', payload);
     const url = `${API_URL}?${params.toString()}`;
     const r = await fetch(url, {signal: controller.signal});
     clearTimeout(timeout);
@@ -600,7 +600,7 @@ function buildStateFromRaw() {
 
     state.detail[cli] = {
       parcelas: mergedParc,
-      recebimentos: [...d.recebimentos].sort((a,b) => parseD(b.data)-parseD(a.data)),
+      recebimentos: [...d.recebimentos].sort((a,b) => parseD(a.data)-parseD(b.data)),
       vendas: Object.values(vendaMap).sort((a,b) => parseD(a.data)-parseD(b.data))
     };
   }
@@ -871,6 +871,20 @@ function openModal(name) {
 }
 
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
+
+// Swipe down para fechar modal no celular
+(function(){
+  let startY = 0;
+  document.addEventListener('touchstart', e => {
+    if (e.target.closest('.modal')) startY = e.touches[0].clientY;
+  }, {passive:true});
+  document.addEventListener('touchend', e => {
+    if (!startY) return;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (dy > 80) closeModal();
+    startY = 0;
+  }, {passive:true});
+})();
 
 // ── HELPERS PT-BR ────────────────────────────────────────────
 function todayBR() {
