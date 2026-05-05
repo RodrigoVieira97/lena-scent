@@ -289,11 +289,11 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">1º Vencimento</label>
-          <input class="form-input" id="v-vencimento" type="date">
+          <input class="form-input" id="v-vencimento" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
         </div>
         <div class="form-group">
           <label class="form-label">Data da Venda</label>
-          <input class="form-input" id="v-data" type="date">
+          <input class="form-input" id="v-data" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
         </div>
       </div>
       <button class="btn-primary" id="btnSalvarVenda" onclick="salvarVenda()">Registrar Venda</button>
@@ -318,7 +318,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
         </div>
         <div class="form-group">
           <label class="form-label">Data</label>
-          <input class="form-input" id="r-data" type="date">
+          <input class="form-input" id="r-data" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
         </div>
       </div>
       <div class="form-group" id="r-saldo-info" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 13px;display:none;">
@@ -341,7 +341,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 // ATENÇÃO: substituir pela URL do seu Web App após o deploy
-const API_URL = 'https://script.google.com/macros/s/AKfycby-Q6R7K6PgRLeqaDyQNIxn7VOvZmTdB2hKl_JRezcVQqP-h__8oDWAkb7NAc2jvC2g/exec';
+const API_URL = 'COLE_AQUI_A_URL_DO_WEB_APP';
 
 // ── AUTH ──────────────────────────────────────────────────────
 const USERS = [
@@ -829,6 +829,21 @@ function openModal(name) {
 
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
 
+// ── HELPERS PT-BR ────────────────────────────────────────────
+function todayBR() {
+  const d = new Date();
+  return String(d.getDate()).padStart(2,'0') + '/' +
+         String(d.getMonth()+1).padStart(2,'0') + '/' +
+         d.getFullYear();
+}
+
+function maskDate(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
+  if (v.length > 5) v = v.slice(0,5) + '/' + v.slice(5);
+  el.value = v.slice(0,10);
+}
+
 // ── LANÇAMENTOS ───────────────────────────────────────────────
 async function salvarVenda() {
   const cli      = document.getElementById('v-cliente').value.trim();
@@ -839,12 +854,14 @@ async function salvarVenda() {
   const dataInput= document.getElementById('v-data').value;
 
   if (!cli||!produto||!valor||!nparc||!vencInput) { alert('Preencha todos os campos.'); return; }
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(vencInput)) { alert('Data de vencimento inválida. Use dd/mm/aaaa.'); return; }
+  if (dataInput && !/^\d{2}\/\d{2}\/\d{4}$/.test(dataInput)) { alert('Data da venda inválida. Use dd/mm/aaaa.'); return; }
 
   const btn = document.getElementById('btnSalvarVenda');
   btn.disabled = true; btn.textContent = 'Salvando...';
 
-  const vencDisplay = vencInput.split('-').reverse().join('/');
-  const dataDisplay = dataInput ? dataInput.split('-').reverse().join('/') : fmtD(new Date());
+  const vencDisplay = vencInput; // já está em dd/mm/aaaa
+  const dataDisplay = dataInput || todayBR();
 
   const res = await apiPost({
     action: 'nova_venda',
@@ -870,11 +887,12 @@ async function salvarRecebimento() {
   const dataInput = document.getElementById('r-data').value;
 
   if (!cli||!valor||!dataInput) { alert('Preencha todos os campos.'); return; }
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataInput)) { alert('Data inválida. Use dd/mm/aaaa.'); return; }
 
   const btn = document.getElementById('btnSalvarReceb');
   btn.disabled = true; btn.textContent = 'Salvando...';
 
-  const dataDisplay = dataInput.split('-').reverse().join('/');
+  const dataDisplay = dataInput; // já está em dd/mm/aaaa
 
   const res = await apiPost({
     action: 'novo_recebimento',
@@ -904,7 +922,7 @@ function setF(f,el){cliFilter=f;document.querySelectorAll('#sec-clientes .ftab')
 function setR(r,el){rankFilter=r;document.querySelectorAll('#sec-ranking .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderRank();}
 
 function openSheet(id){
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayBR();
   if(id==='sheetVenda'){document.getElementById('v-vencimento').value=today;document.getElementById('v-data').value=today;}
   if(id==='sheetReceb'){document.getElementById('r-data').value=today;}
   document.getElementById(id).classList.add('open');
