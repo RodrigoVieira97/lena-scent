@@ -197,6 +197,14 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
+.edit-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--light);cursor:pointer;font-family:"Inter",sans-serif;transition:all .2s;margin-left:8px;}
+.edit-btn:hover{border-color:var(--gold);color:var(--gold);}
+.rename-box{padding:14px 17px;border-bottom:1px solid var(--border);background:var(--card);}
+.rename-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--light);margin-bottom:6px;}
+.rename-row{display:flex;gap:8px;}
+.rename-input{flex:1;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:"Inter",sans-serif;font-size:14px;color:var(--dark);outline:none;}
+.rename-input:focus{border-color:var(--gold);}
+.rename-save{padding:9px 14px;background:var(--dark);color:var(--gold);border:none;border-radius:8px;font-family:"Inter",sans-serif;font-size:13px;cursor:pointer;white-space:nowrap;}
 .sort-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
 .sort-select{flex:1;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-family:'Inter',sans-serif;font-size:12px;color:var(--mid);outline:none;cursor:pointer;}
 .sort-select:focus{border-color:var(--gold);}
@@ -930,7 +938,20 @@ function openModal(name) {
   } else recebHtml += '<div class="empty">Nenhum recebimento</div>';
 
   document.getElementById('modalContent').innerHTML = `
-    <div class="m-head"><div class="m-name">${name}</div><div class="m-meta">${pct}% pago · ${sum.nparc} parcelas</div></div>
+    <div class="m-head">
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="m-name">${name}</div>
+        <button class="edit-btn" onclick="showRenameBox('${name.replace(/'/g,"\\'")}')">✎ editar</button>
+      </div>
+      <div class="m-meta">${pct}% pago · ${sum.nparc} parcelas</div>
+    </div>
+    <div class="rename-box" id="renameBox_${name.replace(/[^a-zA-Z0-9]/g,'_')}" style="display:none">
+      <div class="rename-label">Novo nome do cliente</div>
+      <div class="rename-row">
+        <input class="rename-input" id="renameInput_${name.replace(/[^a-zA-Z0-9]/g,'_')}" value="${name}" placeholder="Novo nome">
+        <button class="rename-save" onclick="salvarRenome('${name.replace(/'/g,"\\'")}')">Salvar</button>
+      </div>
+    </div>
     <div class="m-stats">
       <div class="mst"><div class="mst-v">${BRL(sum.tv)}</div><div class="mst-l">Vendido</div></div>
       <div class="mst"><div class="mst-v" style="color:var(--green)">${BRL(sum.tp)}</div><div class="mst-l">Pago</div></div>
@@ -938,6 +959,31 @@ function openModal(name) {
     </div>
     ${vendasHtml}${recebHtml}${parcHtml}`;
   document.getElementById('overlay').classList.add('open');
+}
+
+
+// ── RENOMEAR CLIENTE ──────────────────────────────────────────
+function showRenameBox(name) {
+  const safeId = name.replace(/[^a-zA-Z0-9]/g,'_');
+  const box = document.getElementById('renameBox_' + safeId);
+  if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function salvarRenome(nomeAntigo) {
+  const safeId = nomeAntigo.replace(/[^a-zA-Z0-9]/g,'_');
+  const input = document.getElementById('renameInput_' + safeId);
+  const nomeNovo = input?.value?.trim();
+  if (!nomeNovo || nomeNovo === nomeAntigo) { closeModal(); return; }
+
+  toast('Renomeando...');
+  const res = await apiPost({action:'renomear_cliente', nome_antigo:nomeAntigo, nome_novo:nomeNovo});
+  if (res?.ok) {
+    toast('✓ ' + nomeAntigo + ' → ' + nomeNovo + ' (' + (res.alteracoes||0) + ' linhas)');
+    closeModal();
+    setTimeout(() => loadData(), 1500);
+  } else {
+    toast('⚠ Erro: ' + (res?.error || 'tente novamente'));
+  }
 }
 
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
