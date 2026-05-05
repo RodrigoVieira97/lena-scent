@@ -301,6 +301,14 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
           <input class="form-input" id="v-data" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
         </div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Vendedor</label>
+        <select class="form-input" id="v-vendedor">
+          <option value="Rodrigo">Rodrigo</option>
+          <option value="Jeni">Jeni</option>
+          <option value="Matheus">Matheus</option>
+          </select>
+      </div>
       <button class="btn-primary" id="btnSalvarVenda" onclick="salvarVenda()">Registrar Venda</button>
     </div>
   </div>
@@ -329,6 +337,14 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="form-group" id="r-saldo-info" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 13px;display:none;">
         <div style="font-size:10px;color:var(--light);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">Saldo em aberto</div>
         <div id="r-saldo-val" style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--red);font-weight:600"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vendedor</label>
+        <select class="form-input" id="r-vendedor">
+          <option value="Rodrigo">Rodrigo</option>
+          <option value="Jeni">Jeni</option>
+          <option value="Matheus">Matheus</option>
+          </select>
       </div>
       <button class="btn-primary" id="btnSalvarReceb" onclick="salvarRecebimento()">Registrar Recebimento</button>
     </div>
@@ -924,7 +940,7 @@ async function salvarVenda() {
     action: 'nova_venda',
     cliente: cli, produto, valor, parcelas: nparc,
     vencimento: vencDisplay, data_venda: dataDisplay,
-    vendedor: currentUser.display
+    vendedor: document.getElementById('v-vendedor')?.value || currentUser.display
   });
 
   btn.disabled = false; btn.textContent = 'Registrar Venda';
@@ -959,7 +975,7 @@ async function salvarRecebimento() {
   const res = await apiPost({
     action: 'novo_recebimento',
     cliente: cli, valor, data_recebimento: dataDisplay,
-    vendedor: currentUser.display
+    vendedor: document.getElementById('v-vendedor')?.value || currentUser.display
   });
 
   btn.disabled = false; btn.textContent = 'Registrar Recebimento';
@@ -990,8 +1006,18 @@ function setR(r,el){rankFilter=r;document.querySelectorAll('#sec-ranking .ftab')
 
 function openSheet(id){
   const today=todayBR();
-  if(id==='sheetVenda'){document.getElementById('v-vencimento').value=today;document.getElementById('v-data').value=today;}
-  if(id==='sheetReceb'){document.getElementById('r-data').value=today;}
+  const vend = currentUser?.display || 'Rodrigo';
+  if(id==='sheetVenda'){
+    document.getElementById('v-vencimento').value=today;
+    document.getElementById('v-data').value=today;
+    const sv = document.getElementById('v-vendedor');
+    if(sv) sv.value = vend;
+  }
+  if(id==='sheetReceb'){
+    document.getElementById('r-data').value=today;
+    const rv = document.getElementById('r-vendedor');
+    if(rv) rv.value = vend;
+  }
   document.getElementById(id).classList.add('open');
 }
 function closeSheet(id){document.getElementById(id).classList.remove('open');}
