@@ -444,19 +444,34 @@ function setSyncStatus(status) {
 // ── API CALLS ─────────────────────────────────────────────────
 async function apiGet(action, params='') {
   if (!API_URL || API_URL.includes('COLE_AQUI')) return null;
-  const url = `${API_URL}?action=${action}${params}`;
-  const r = await fetch(url);
-  return r.json();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const url = `${API_URL}?action=${action}${params}`;
+    const r = await fetch(url, {signal: controller.signal});
+    clearTimeout(timeout);
+    return r.json();
+  } catch(e) {
+    if (e.name === 'AbortError') return null;
+    return null;
+  }
 }
 
 async function apiPost(body) {
   if (!API_URL || API_URL.includes('COLE_AQUI')) return {ok:false, error:'API não configurada'};
-  const r = await fetch(API_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  });
-  return r.json();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    // Usar GET com payload em base64 para evitar CORS preflight
+    const payload = btoa(unescape(encodeURIComponent(JSON.stringify(body))));
+    const url = `${API_URL}?action=${body.action}&payload=${encodeURIComponent(payload)}`;
+    const r = await fetch(url, {signal: controller.signal});
+    clearTimeout(timeout);
+    return r.json();
+  } catch(e) {
+    if (e.name === 'AbortError') return {ok:false, error:'Tempo esgotado. Tente novamente.'};
+    return {ok:false, error: e.message};
+  }
 }
 
 // ── DATA LOADING ──────────────────────────────────────────────
@@ -899,10 +914,15 @@ async function salvarVenda() {
 
   if (res?.ok) {
     closeSheet('sheetVenda');
-    toast(`✓ Venda de ${BRL(valor)} para ${cli} salva na planilha`);
-    setTimeout(() => loadData(), 1500); // reload
+    document.getElementById('v-cliente').value = '';
+    document.getElementById('v-produto').value = '';
+    document.getElementById('v-valor').value = '';
+    document.getElementById('v-parcelas').value = '3';
+    toast(`✓ Venda de ${BRL(valor)} para ${cli} salva!`);
+    setTimeout(() => loadData(), 2000);
   } else {
-    alert('Erro ao salvar: ' + (res?.error || 'desconhecido'));
+    btn.textContent = 'Registrar Venda';
+    toast(`⚠ Erro: ${res?.error || 'tente novamente'}`);
   }
 }
 
@@ -929,10 +949,15 @@ async function salvarRecebimento() {
 
   if (res?.ok) {
     closeSheet('sheetReceb');
-    toast(`✓ Recebimento de ${BRL(valor)} de ${cli} salvo na planilha`);
-    setTimeout(() => loadData(), 1500);
+    document.getElementById('r-cliente').value = '';
+    document.getElementById('r-valor').value = '';
+    document.getElementById('r-data').value = '';
+    document.getElementById('r-saldo-info').style.display = 'none';
+    toast(`✓ Recebimento de ${BRL(valor)} de ${cli} salvo!`);
+    setTimeout(() => loadData(), 2000);
   } else {
-    alert('Erro ao salvar: ' + (res?.error || 'desconhecido'));
+    btn.textContent = 'Registrar Recebimento';
+    toast(`⚠ Erro: ${res?.error || 'tente novamente'}`);
   }
 }
 
