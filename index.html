@@ -310,11 +310,11 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">1º Vencimento</label>
-          <input class="form-input" id="v-vencimento" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+          <input class="form-input" id="v-vencimento" type="date">
         </div>
         <div class="form-group">
           <label class="form-label">Data da Venda</label>
-          <input class="form-input" id="v-data" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+          <input class="form-input" id="v-data" type="date">
         </div>
       </div>
       <div class="form-group">
@@ -347,7 +347,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
         </div>
         <div class="form-group">
           <label class="form-label">Data</label>
-          <input class="form-input" id="r-data" type="text" placeholder="dd/mm/aaaa" maxlength="10" oninput="maskDate(this)">
+          <input class="form-input" id="r-data" type="date">
         </div>
       </div>
       <div class="form-group" id="r-saldo-info" style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 13px;display:none;">
@@ -937,13 +937,6 @@ function todayBR() {
          d.getFullYear();
 }
 
-function maskDate(el) {
-  let v = el.value.replace(/\D/g,'');
-  if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
-  if (v.length > 5) v = v.slice(0,5) + '/' + v.slice(5);
-  el.value = v.slice(0,10);
-}
-
 // ── LANÇAMENTOS ───────────────────────────────────────────────
 async function salvarVenda() {
   const cli      = document.getElementById('v-cliente').value.trim();
@@ -954,14 +947,13 @@ async function salvarVenda() {
   const dataInput= document.getElementById('v-data').value;
 
   if (!cli||!produto||!valor||!nparc||!vencInput) { alert('Preencha todos os campos.'); return; }
-  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(vencInput)) { alert('Data de vencimento inválida. Use dd/mm/aaaa.'); return; }
-  if (dataInput && !/^\d{2}\/\d{2}\/\d{4}$/.test(dataInput)) { alert('Data da venda inválida. Use dd/mm/aaaa.'); return; }
 
   const btn = document.getElementById('btnSalvarVenda');
   btn.disabled = true; btn.textContent = 'Salvando...';
 
-  const vencDisplay = vencInput; // já está em dd/mm/aaaa
-  const dataDisplay = dataInput || todayBR();
+  const isoToBR = s => s ? s.split('-').reverse().join('/') : todayBR();
+  const vencDisplay = isoToBR(vencInput);
+  const dataDisplay = isoToBR(dataInput);
 
   const res = await apiPost({
     action: 'nova_venda',
@@ -1032,7 +1024,7 @@ function setF(f,el){cliFilter=f;document.querySelectorAll('#sec-clientes .ftab')
 function setR(r,el){rankFilter=r;document.querySelectorAll('#sec-ranking .ftab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderRank();}
 
 function openSheet(id){
-  const today=todayBR();
+  const today=new Date().toISOString().slice(0,10); // yyyy-mm-dd para type="date"
   const vend = currentUser?.display || 'Rodrigo';
   if(id==='sheetVenda'){
     document.getElementById('v-vencimento').value=today;
