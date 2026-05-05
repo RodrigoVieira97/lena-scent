@@ -400,7 +400,18 @@ const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padSt
 
 // ── HELPERS ───────────────────────────────────────────────────
 const BRL = v => 'R$\u00a0' + Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const parseD = d => { try { const [dd,mm,yy] = d.split('/'); return new Date(+yy,mm-1,dd); } catch(e){ return new Date(0); }};
+const parseD = d => {
+  try {
+    if (!d || typeof d !== 'string') return new Date(0);
+    const parts = d.trim().split('/');
+    if (parts.length !== 3) return new Date(0);
+    let [dd, mm, yy] = parts;
+    let year = parseInt(yy);
+    if (year < 100) year += 2000; // 25 -> 2025
+    const dt = new Date(year, parseInt(mm)-1, parseInt(dd));
+    return isNaN(dt.getTime()) ? new Date(0) : dt;
+  } catch(e){ return new Date(0); }
+};
 const fmtD = d => d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
 const monthKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const addMonths = (d,n) => { const r=new Date(d); r.setMonth(r.getMonth()+n); return r; };
@@ -477,6 +488,14 @@ async function loadData() {
   }
 }
 
+function jsParseValor(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  if (typeof v === 'number') return Math.round(v * 100) / 100;
+  const s = String(v).replace(/R\$\s?/g,'').replace(/\./g,'').replace(',','.').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.round(n * 100) / 100;
+}
+
 function buildStateFromRaw() {
   // Build per-client summary and detail from raw vendas/recebimentos
   const clients = {};
@@ -485,14 +504,14 @@ function buildStateFromRaw() {
   for (const v of state.vendas) {
     const cli = v.cliente;
     if (!clients[cli]) clients[cli] = {vendas:[], parcelas:[], recebimentos:[], tv:0, tp:0};
-    const valParc = round2(v.valor / v.parcelas);
+    const valParc = round2(jsParseValor(v.valor) / Math.max(1, v.parcelas));
     const vencDate = parseD(v.vencimento);
     for (let i = 0; i < v.parcelas; i++) {
       const dt = addMonths(vencDate, i);
       clients[cli].parcelas.push({data: fmtD(dt), valor: valParc, pago: 0, venda_data: v.data, produto: v.produto});
     }
     clients[cli].vendas.push(v);
-    clients[cli].tv = round2(clients[cli].tv + v.valor);
+    clients[cli].tv = round2(clients[cli].tv + jsParseValor(v.valor));
   }
 
   // Sort parcelas by date per client
@@ -511,16 +530,17 @@ function buildStateFromRaw() {
     if (!clients[cli]) clients[cli] = {vendas:[], parcelas:[], recebimentos:[], tv:0, tp:0};
     const sorted = [...recList].sort((a,b) => parseD(a.data) - parseD(b.data));
     for (const rec of sorted) {
-      let saldo = rec.valor;
+      let saldo = jsParseValor(rec.valor);
+      let fifoLimit = 0;
       for (const p of clients[cli].parcelas) {
-        if (saldo <= 0) break;
+        if (saldo <= 0.01 || ++fifoLimit > 500) break;
         const falta = round2(p.valor - p.pago);
-        if (falta <= 0) continue;
+        if (falta <= 0.01) continue;
         const abate = Math.min(saldo, falta);
         p.pago = round2(p.pago + abate);
         saldo = round2(saldo - abate);
       }
-      clients[cli].tp = round2(clients[cli].tp + rec.valor);
+      clients[cli].tp = round2(clients[cli].tp + jsParseValor(rec.valor));
       clients[cli].recebimentos.push(rec);
     }
   }
@@ -791,7 +811,7 @@ function openModal(name) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
     <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th></tr></thead>
-      <tbody>${det.vendas.map(v=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td></tr>`).join('')}</tbody>
+      <tbody>${[...det.vendas].sort((a,b)=>parseD(b.data)-parseD(a.data)).map(v=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td></tr>`).join('')}</tbody>
     </table></div>`;
   }
 
