@@ -248,6 +248,12 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
     <div class="section" id="sec-clientes">
       <div class="search-wrap"><input type="text" id="searchInput" placeholder="Buscar cliente..." oninput="renderCli()"></div>
       <div class="sort-bar">
+        <select class="sort-select" id="vendedorFilter" onchange="renderCli()" style="max-width:120px">
+          <option value="">Todos</option>
+          <option value="Rodrigo">Rodrigo</option>
+          <option value="Jeni">Jeni</option>
+          <option value="Matheus">Matheus</option>
+        </select>
         <select class="sort-select" id="sortSelect" onchange="renderCli()">
           <option value="saldo_desc">Maior saldo primeiro</option>
           <option value="saldo_asc">Menor saldo primeiro</option>
@@ -623,7 +629,7 @@ function buildStateFromRaw() {
     const vendaMap = {};
     for (const p of d.parcelas) {
       const k = (p.venda_data||'')+'|'+(p.produto||'');
-      if (!vendaMap[k]) vendaMap[k] = {data:p.venda_data||'', produto:p.produto||'', valor:0, nparcelas:0};
+      if (!vendaMap[k]) vendaMap[k] = {data:p.venda_data||'', produto:p.produto||'', valor:0, nparcelas:0, vendedor:p.vendedor||''};
       vendaMap[k].valor = round2(vendaMap[k].valor + p.valor);
       vendaMap[k].nparcelas++;
     }
@@ -762,11 +768,18 @@ function renderDash() {
 
 function renderCli() {
   const q = (document.getElementById('searchInput')?.value||'').toLowerCase();
+  const vendedorFiltro = document.getElementById('vendedorFilter')?.value || '';
   let list = Object.values(state.summary).filter(c=>c.tv>0||c.s>0);
   if (q) list = list.filter(c=>c.n.toLowerCase().includes(q));
   if (cliFilter==='aberto')  list = list.filter(c=>c.s>0.05);
   if (cliFilter==='quitado') list = list.filter(c=>c.s<=0.05&&c.tv>0);
   if (cliFilter==='vencido') list = list.filter(c=>c.v);
+  if (vendedorFiltro) {
+    list = list.filter(c => {
+      const det = state.detail[c.n];
+      return det?.vendas?.some(v => v.vendedor === vendedorFiltro);
+    });
+  }
   const sort = document.getElementById('sortSelect')?.value || 'saldo_desc';
   if (sort === 'saldo_desc')  list.sort((a,b) => b.s - a.s);
   else if (sort === 'saldo_asc')   list.sort((a,b) => a.s - b.s);
