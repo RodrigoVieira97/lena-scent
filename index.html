@@ -494,11 +494,9 @@ async function apiPost(body) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-    // Manda parâmetros diretos + payload base64 (compatível com GAS v3 e v4)
+    // Parâmetros diretos na URL — suporte total a acentos e caracteres especiais
     const params = new URLSearchParams();
     for (const [k,v] of Object.entries(body)) params.append(k, String(v));
-    const payload = btoa(unescape(encodeURIComponent(JSON.stringify(body))));
-    params.append('payload', payload);
     const url = `${API_URL}?${params.toString()}`;
     const r = await fetch(url, {signal: controller.signal});
     clearTimeout(timeout);
