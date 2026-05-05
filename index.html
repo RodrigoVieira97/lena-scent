@@ -978,7 +978,11 @@ async function salvarVenda() {
   const btn = document.getElementById('btnSalvarVenda');
   btn.disabled = true; btn.textContent = 'Salvando...';
 
-  const isoToBR = s => s ? s.split('-').reverse().join('/') : todayBR();
+  const isoToBR = s => {
+    if (!s) return todayBR();
+    if (s.includes('-')) return s.split('-').reverse().join('/'); // yyyy-mm-dd -> dd/mm/yyyy
+    return s; // já está em dd/mm/yyyy
+  };
   const vencDisplay = isoToBR(vencInput);
   const dataDisplay = isoToBR(dataInput);
 
@@ -1011,12 +1015,11 @@ async function salvarRecebimento() {
   const dataInput = document.getElementById('r-data').value;
 
   if (!cli||!valor||!dataInput) { alert('Preencha todos os campos.'); return; }
-  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataInput)) { alert('Data inválida. Use dd/mm/aaaa.'); return; }
 
   const btn = document.getElementById('btnSalvarReceb');
   btn.disabled = true; btn.textContent = 'Salvando...';
 
-  const dataDisplay = dataInput; // já está em dd/mm/aaaa
+  const dataDisplay = dataInput ? dataInput.split('-').reverse().join('/') : todayBR();
 
   const res = await apiPost({
     action: 'novo_recebimento',
