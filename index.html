@@ -578,7 +578,7 @@ function buildStateFromRaw() {
     state.detail[cli] = {
       parcelas: mergedParc,
       recebimentos: [...d.recebimentos].sort((a,b) => parseD(b.data)-parseD(a.data)),
-      vendas: Object.values(vendaMap).sort((a,b) => parseD(b.data)-parseD(a.data))
+      vendas: Object.values(vendaMap).sort((a,b) => parseD(a.data)-parseD(b.data))
     };
   }
 
@@ -811,7 +811,7 @@ function openModal(name) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
     <div class="tbl-wrap"><table class="tbl">
       <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th></tr></thead>
-      <tbody>${[...det.vendas].sort((a,b)=>parseD(b.data)-parseD(a.data)).map(v=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td></tr>`).join('')}</tbody>
+      <tbody>${[...det.vendas].sort((a,b)=>parseD(a.data)-parseD(b.data)).map(v=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td></tr>`).join('')}</tbody>
     </table></div>`;
   }
 
