@@ -346,7 +346,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
 // ATENÇÃO: substituir pela URL do seu Web App após o deploy
-const API_URL = 'https://script.google.com/macros/s/AKfycbxzgHfuBlggVdn7OzpiqnoGpom8K84uHyUBqlM4Lsr5z2bR2dSU1INnhSDRG8GyRAKP/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby7ON0BFdIH1vTLQX9fH7L3V9ws-5b9LfTqs9tKCy3uX4JZmzF-WdiMvUvrkapR3a0X/exec';
 
 // ── AUTH ──────────────────────────────────────────────────────
 const USERS = [
@@ -462,9 +462,12 @@ async function apiPost(body) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
-    // Usar GET com payload em base64 para evitar CORS preflight
-    const payload = btoa(unescape(encodeURIComponent(JSON.stringify(body))));
-    const url = `${API_URL}?action=${body.action}&payload=${encodeURIComponent(payload)}`;
+    // Passar cada campo como parâmetro GET (evita CORS preflight do POST)
+    const params = new URLSearchParams();
+    for (const [k,v] of Object.entries(body)) {
+      params.append(k, String(v));
+    }
+    const url = `${API_URL}?${params.toString()}`;
     const r = await fetch(url, {signal: controller.signal});
     clearTimeout(timeout);
     return r.json();
