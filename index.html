@@ -197,6 +197,29 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
+.cob-card{background:var(--card);border:1px solid var(--border);border-radius:11px;margin-bottom:8px;overflow:hidden;cursor:pointer;transition:transform .15s;}
+.cob-card:hover{transform:translateY(-1px);}
+.cob-card.vencido{border-left:3px solid var(--red);}
+.cob-card.vence-hoje{border-left:3px solid var(--amber);}
+.cob-card.vence-breve{border-left:3px solid var(--blue);}
+.cob-header{display:flex;align-items:center;padding:12px 14px;gap:10px;}
+.cob-info{flex:1;min-width:0;}
+.cob-nome{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cob-detalhe{font-size:10px;color:var(--light);margin-top:2px;}
+.cob-valor{text-align:right;flex-shrink:0;}
+.cob-val{font-family:"Cormorant Garamond",serif;font-size:17px;font-weight:600;}
+.cob-tag{font-size:9px;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.cob-tag.vencido{color:var(--red);}
+.cob-tag.vence-hoje{color:var(--amber);}
+.cob-tag.vence-breve{color:var(--blue);}
+.cob-quick-btn{display:block;width:calc(100% - 28px);margin:0 14px 12px;padding:9px;background:var(--dark);color:var(--gold);border:none;border-radius:8px;font-family:"Inter",sans-serif;font-size:12px;cursor:pointer;text-align:center;}
+.cob-empty{text-align:center;padding:48px 20px;}
+.cob-empty-icon{font-size:36px;margin-bottom:12px;}
+.cob-empty-msg{font-size:14px;font-weight:500;margin-bottom:6px;}
+.cob-empty-sub{font-size:12px;color:var(--light);}
+.cob-config{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:12px;color:var(--mid);}
+.cob-config input{width:60px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:"Inter",sans-serif;font-size:12px;text-align:center;background:var(--bg);color:var(--dark);outline:none;}
+.cob-config input:focus{border-color:var(--gold);}
 .edit-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--light);cursor:pointer;font-family:"Inter",sans-serif;transition:all .2s;margin-left:8px;}
 .edit-btn:hover{border-color:var(--gold);color:var(--gold);}
 .rename-box{padding:14px 17px;border-bottom:1px solid var(--border);background:var(--card);}
@@ -260,7 +283,8 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
     <div class="tab active" id="tab-dashboard" onclick="showSec('dashboard',this)">Dashboard</div>
     <div class="tab" id="tab-clientes" onclick="showSec('clientes',this)">Clientes</div>
     <div class="tab" id="tab-projecao" onclick="showSec('projecao',this)">Projeção</div>
-    <div class="tab" id="tab-ranking" onclick="showSec('ranking',this)">Ranking</div>
+    <div class="tab" id="tab-cobrancas" onclick="showSec('cobrancas',this)">Cobranças</div>
+  <div class="tab" id="tab-ranking" onclick="showSec('ranking',this)">Ranking</div>
   </div>
   <div class="content">
     <div class="section active" id="sec-dashboard"></div>
@@ -292,6 +316,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="cli-list" id="cliList"></div>
     </div>
     <div class="section" id="sec-projecao"></div>
+    <div class="section" id="sec-cobrancas"></div>
     <div class="section" id="sec-ranking">
       <div class="ftabs">
         <div class="ftab active" onclick="setR('saldo',this)">Maior Saldo</div>
@@ -458,6 +483,7 @@ let state = {
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
 const TODAY = new Date();
+const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
 
 // ── HELPERS ───────────────────────────────────────────────────
@@ -482,7 +508,10 @@ const round2 = n => Math.round(n*100)/100;
 function stParcela(p) {
   const falta = round2(p.valor - p.pago);
   if (falta <= 0.05) return 'pago';
-  if (parseD(p.data) < TODAY) return 'vencido';
+  if (parseD(p.data) < TODAY) {
+    if (falta < IGNORAR_VENCIDO_ABAIXO_DE) return 'parcial'; // saldo residual, não cobra
+    return 'vencido';
+  }
   return p.pago > 0 ? 'parcial' : 'aberto';
 }
 
@@ -694,8 +723,94 @@ function renderDemoMode() {
 }
 
 // ── RENDERS ───────────────────────────────────────────────────
+
+// ── COBRANÇAS ─────────────────────────────────────────────────
+function renderCobrancas() {
+  const sec = document.getElementById('sec-cobrancas');
+  if (!sec) return;
+
+  const limite = window._cobLimite || IGNORAR_VENCIDO_ABAIXO_DE;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const fimMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
+  const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate()+7);
+
+  // Coletar parcelas a cobrar por cliente
+  const cobrancas = [];
+  for (const [nome, sum] of Object.entries(state.summary)) {
+    const det = state.detail[nome];
+    if (!det?.parcelas) continue;
+    for (const p of det.parcelas) {
+      const falta = round2(p.valor - p.pago);
+      if (falta < limite) continue; // ignora residual
+      const dt = parseD(p.data); dt.setHours(0,0,0,0);
+      if (dt > fimMes) continue; // só este mês e anteriores
+      const diasAtraso = Math.floor((hoje - dt) / 86400000);
+      let tipo = '';
+      if (dt < hoje) tipo = 'vencido';
+      else if (dt.getTime() === hoje.getTime()) tipo = 'vence-hoje';
+      else tipo = 'vence-breve';
+      cobrancas.push({nome, falta, data:p.data, dt, tipo, diasAtraso, parcela:p});
+    }
+  }
+
+  // Ordenar: vencidos primeiro (mais antigo), depois vence-hoje, depois vence-breve
+  cobrancas.sort((a,b) => {
+    const ordem = {vencido:0,'vence-hoje':1,'vence-breve':2};
+    if (ordem[a.tipo] !== ordem[b.tipo]) return ordem[a.tipo] - ordem[b.tipo];
+    return a.dt - b.dt;
+  });
+
+  const tipoLabel = {
+    vencido: d => d > 0 ? `Vencido há ${d} dia${d>1?'s':''}` : 'Vencido hoje',
+    'vence-hoje': () => 'Vence hoje',
+    'vence-breve': (d,data) => `Vence em ${data}`
+  };
+
+  const cards = cobrancas.map(c => `
+    <div class="cob-card ${c.tipo}" onclick="openModal('${c.nome.replace(/'/g,"\'")}')">
+      <div class="cob-header">
+        <div class="cob-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--dark);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--gold);flex-shrink:0">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
+        <div class="cob-info">
+          <div class="cob-nome">${c.nome}</div>
+          <div class="cob-detalhe">Parcela ${c.data}</div>
+        </div>
+        <div class="cob-valor">
+          <div class="cob-val" style="color:${c.tipo==='vencido'?'var(--red)':c.tipo==='vence-hoje'?'var(--amber)':'var(--blue)'}">${BRL(c.falta)}</div>
+          <div class="cob-tag ${c.tipo}">${c.tipo==='vencido'?tipoLabel.vencido(c.diasAtraso):c.tipo==='vence-hoje'?tipoLabel['vence-hoje']():tipoLabel['vence-breve'](0,c.data)}</div>
+        </div>
+      </div>
+      <button class="cob-quick-btn" onclick="event.stopPropagation();quickReceber('${c.nome.replace(/'/g,"\'")}',${c.falta})">↓ Registrar recebimento de ${BRL(c.falta)}</button>
+    </div>`).join('');
+
+  const total = cobrancas.reduce((s,c)=>s+c.falta,0);
+
+  sec.innerHTML = `
+    <div class="cob-config">
+      <span>Ignorar saldo abaixo de</span>
+      <input type="number" id="cobLimiteInput" value="${limite}" min="0" max="100" onchange="window._cobLimite=parseFloat(this.value)||0;renderCobrancas()">
+      <span>R$ neste mês</span>
+    </div>
+    ${cobrancas.length === 0
+      ? '<div class="cob-empty"><div class="cob-empty-icon">✓</div><div class="cob-empty-msg">Tudo em dia!</div><div class="cob-empty-sub">Nenhuma cobrança pendente este mês.</div></div>'
+      : '<div style="font-size:11px;color:var(--light);margin-bottom:10px">' + cobrancas.length + ' cobranças · Total ' + BRL(total) + '</div>' + cards
+    }`;
+}
+
+function quickReceber(nome, valor) {
+  // Pré-preenche o form de recebimento e abre
+  closeModal();
+  setTimeout(() => {
+    document.getElementById('r-cliente').value = nome;
+    document.getElementById('r-valor').value = valor;
+    document.getElementById('r-data').value = new Date().toISOString().slice(0,10);
+    // Trigger saldo hint
+    document.getElementById('r-cliente').dispatchEvent(new Event('input'));
+    openSheet('sheetReceb');
+  }, 200);
+}
+
 function renderAll() {
-  renderDash(); renderCli(); renderProj(); renderRank(); populateDatalist();
+  renderDash(); renderCli(); renderProj(); renderRank(); renderCobrancas(); populateDatalist();
 }
 
 function populateDatalist() {
