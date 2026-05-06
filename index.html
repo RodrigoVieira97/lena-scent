@@ -197,18 +197,36 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
-.venda-edit-row{background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:12px 14px;margin:8px 17px;}
-.venda-edit-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-.venda-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-.venda-edit-field label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--light);display:block;margin-bottom:4px;}
-.venda-edit-field input{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;font-family:"Inter",sans-serif;font-size:13px;color:var(--dark);outline:none;}
-.venda-edit-field input:focus{border-color:var(--gold);}
-.venda-edit-preview{font-size:11px;padding:8px 10px;background:var(--bg);border-radius:7px;border:1px solid var(--border);margin-bottom:8px;color:var(--mid);line-height:1.6;}
-.venda-edit-preview .ok{color:var(--green);font-weight:500;}
-.venda-edit-preview .warn{color:var(--amber);font-weight:500;}
-.venda-edit-btns{display:flex;gap:8px;}
-.btn-salvar-venda{flex:1;padding:9px;background:var(--dark);color:var(--gold);border:none;border-radius:8px;font-family:"Inter",sans-serif;font-size:13px;cursor:pointer;}
-.btn-cancelar-edit{padding:9px 14px;background:none;border:1px solid var(--border);border-radius:8px;font-family:"Inter",sans-serif;font-size:13px;color:var(--light);cursor:pointer;}
+.asaas-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.asaas-period{display:flex;gap:8px;align-items:center;flex:1;min-width:200px;}
+.asaas-period input{padding:8px 11px;background:var(--card);border:1px solid var(--border);border-radius:9px;font-family:"Inter",sans-serif;font-size:13px;color:var(--dark);outline:none;width:130px;}
+.asaas-period input:focus{border-color:var(--gold);}
+.btn-buscar{padding:9px 16px;background:var(--dark);color:var(--gold);border:none;border-radius:9px;font-family:"Inter",sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-buscar:hover{background:var(--mid);}
+.btn-buscar:disabled{opacity:.5;cursor:not-allowed;}
+.btn-lancar-todos{padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:9px;font-family:"Inter",sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-lancar-todos:disabled{opacity:.5;cursor:not-allowed;}
+.asaas-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.astat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 12px;text-align:center;}
+.astat-v{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:600;}
+.astat-l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--light);margin-top:2px;}
+.pag-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.pag-row.duplicado{opacity:.45;}
+.pag-row.nao-mapeado{border-left:3px solid var(--amber);}
+.pag-check{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+.pag-info{flex:1;min-width:0;}
+.pag-nome-asaas{font-size:11px;color:var(--light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pag-nome-plan{font-size:13px;font-weight:500;}
+.pag-nome-input{width:100%;padding:5px 8px;margin-top:4px;background:var(--bg);border:1px solid var(--amber);border-radius:6px;font-family:"Inter",sans-serif;font-size:12px;color:var(--dark);outline:none;}
+.pag-nome-input:focus{border-color:var(--gold);}
+.pag-right{text-align:right;flex-shrink:0;}
+.pag-valor{font-family:"Cormorant Garamond",serif;font-size:16px;font-weight:600;}
+.pag-data{font-size:10px;color:var(--light);margin-top:2px;}
+.pag-tag{font-size:9px;padding:2px 7px;border-radius:10px;display:inline-block;margin-top:3px;}
+.pag-tag.ok{background:#d4edda;color:var(--green);}
+.pag-tag.warn{background:#fff3cd;color:var(--amber);}
+.pag-tag.dup{background:#f8d7da;color:var(--red);}
+.asaas-empty{text-align:center;padding:40px 20px;color:var(--light);}
 .cob-card{background:var(--card);border:1px solid var(--border);border-radius:11px;margin-bottom:8px;overflow:hidden;cursor:pointer;transition:transform .15s;}
 .cob-card:hover{transform:translateY(-1px);}
 .cob-card.vencido{border-left:3px solid var(--red);}
@@ -295,7 +313,8 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
     <div class="tab active" id="tab-dashboard" onclick="showSec('dashboard',this)">Dashboard</div>
     <div class="tab" id="tab-clientes" onclick="showSec('clientes',this)">Clientes</div>
     <div class="tab" id="tab-projecao" onclick="showSec('projecao',this)">Projeção</div>
-    <div class="tab" id="tab-cobrancas" onclick="showSec('cobrancas',this)">Cobranças</div>
+    <div class="tab" id="tab-asaas" onclick="showSec('asaas',this)">Asaas</div>
+  <div class="tab" id="tab-cobrancas" onclick="showSec('cobrancas',this)">Cobranças</div>
   <div class="tab" id="tab-ranking" onclick="showSec('ranking',this)">Ranking</div>
   </div>
   <div class="content">
@@ -328,6 +347,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="cli-list" id="cliList"></div>
     </div>
     <div class="section" id="sec-projecao"></div>
+    <div class="section" id="sec-asaas"></div>
     <div class="section" id="sec-cobrancas"></div>
     <div class="section" id="sec-ranking">
       <div class="ftabs">
@@ -832,87 +852,193 @@ function quickReceber(nome, valor) {
   }, 200);
 }
 
-// ── EDITAR VENDA ──────────────────────────────────────────────
-function abrirEditVenda(nome, idx) {
-  const safeId = nome.replace(/[^a-zA-Z0-9]/g,'_');
-  const row = document.getElementById('editVendaRow_' + safeId + '_' + idx);
-  if (row) {
-    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
-    previewEdit(safeId, idx, nome);
+// ── ASAAS IMPORT ──────────────────────────────────────────────
+let _asaasPagamentos = [];
+
+function renderAsaas() {
+  const sec = document.getElementById('sec-asaas');
+  if (!sec) return;
+  if (currentUser?.role === 'vendedor') {
+    sec.innerHTML = '<div class="asaas-empty">Disponível apenas para administradores.</div>';
+    return;
+  }
+
+  // Período padrão: mês atual
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = String(hoje.getMonth()+1).padStart(2,'0');
+  const ultimoDia = new Date(y, hoje.getMonth()+1, 0).getDate();
+  const inicioDefault = `${y}-${m}-01`;
+  const fimDefault    = `${y}-${m}-${String(ultimoDia).padStart(2,'0')}`;
+
+  sec.innerHTML = `
+    <div class="asaas-header">
+      <div class="asaas-period">
+        <input type="date" id="asaasInicio" value="${inicioDefault}">
+        <span style="color:var(--light);font-size:12px">até</span>
+        <input type="date" id="asaasFim" value="${fimDefault}">
+      </div>
+      <button class="btn-buscar" id="btnBuscarAsaas" onclick="buscarAsaas()">Buscar pagamentos</button>
+    </div>
+    <div id="asaasContent"><div class="asaas-empty"><div style="font-size:28px;margin-bottom:8px">🏦</div>Selecione o período e clique em Buscar.</div></div>
+  `;
+}
+
+async function buscarAsaas() {
+  const inicio = document.getElementById('asaasInicio').value;
+  const fim    = document.getElementById('asaasFim').value;
+  if (!inicio || !fim) { toast('⚠ Selecione o período.'); return; }
+
+  const btn = document.getElementById('btnBuscarAsaas');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+
+  const content = document.getElementById('asaasContent');
+  content.innerHTML = '<div class="asaas-empty"><div class="spinner" style="width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px"></div>Buscando no Asaas...</div>';
+
+  try {
+    const res = await apiGet('asaas_pagamentos', `&inicio=${inicio}&fim=${fim}`);
+    btn.disabled = false; btn.textContent = 'Buscar pagamentos';
+
+    if (!res || res.error) {
+      content.innerHTML = `<div class="asaas-empty">⚠ Erro: ${res?.error || 'sem resposta'}</div>`;
+      return;
+    }
+
+    _asaasPagamentos = res.pagamentos || [];
+    renderAsaasResultados();
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Buscar pagamentos';
+    content.innerHTML = `<div class="asaas-empty">⚠ Erro de conexão: ${e.message}</div>`;
   }
 }
 
-function fecharEditVenda(safeId, idx) {
-  const row = document.getElementById('editVendaRow_' + safeId + '_' + idx);
-  if (row) row.style.display = 'none';
+function renderAsaasResultados() {
+  const pags = _asaasPagamentos;
+  const content = document.getElementById('asaasContent');
+
+  const novos     = pags.filter(p => !p.duplicado);
+  const dup       = pags.filter(p => p.duplicado);
+  const mapeados  = novos.filter(p => p.mapeado);
+  const pendentes = novos.filter(p => !p.mapeado);
+  const total     = novos.reduce((s,p) => s+p.valor, 0);
+
+  const stats = `
+    <div class="asaas-stats">
+      <div class="astat"><div class="astat-v" style="color:var(--green)">${mapeados.length}</div><div class="astat-l">Prontos</div></div>
+      <div class="astat"><div class="astat-v" style="color:var(--amber)">${pendentes.length}</div><div class="astat-l">Sem mapeamento</div></div>
+      <div class="astat"><div class="astat-v" style="color:var(--light)">${dup.length}</div><div class="astat-l">Já lançados</div></div>
+    </div>`;
+
+  const btnLancar = novos.length > 0 ? `
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn-lancar-todos" onclick="lancarSelecionados()">↓ Lançar selecionados (${BRL(total)})</button>
+      <button class="btn-buscar" onclick="toggleTodos(true)" style="background:none;border:1px solid var(--border);color:var(--mid)">✓ Todos</button>
+      <button class="btn-buscar" onclick="toggleTodos(false)" style="background:none;border:1px solid var(--border);color:var(--mid)">✗ Nenhum</button>
+    </div>` : '';
+
+  const rows = novos.map((p, i) => {
+    const checked = p.mapeado && !p.duplicado ? 'checked' : '';
+    const nomePlan = p.nome_plan || '';
+    const inputNome = !p.mapeado ? `<input class="pag-nome-input" id="nomeInput_${i}" placeholder="Nome na planilha..." list="clientesList" value="${nomePlan}">` : '';
+    const tag = p.mapeado
+      ? `<span class="pag-tag ok">✓ Mapeado</span>`
+      : `<span class="pag-tag warn">⚠ Mapear</span>`;
+
+    return `<div class="pag-row ${!p.mapeado?'nao-mapeado':''}">
+      <input type="checkbox" class="pag-check asaas-check" data-idx="${i}" ${checked}>
+      <div class="pag-info">
+        <div class="pag-nome-asaas">${p.nome_asaas}</div>
+        <div class="pag-nome-plan">${nomePlan || '—'}</div>
+        ${inputNome}
+        ${tag}
+      </div>
+      <div class="pag-right">
+        <div class="pag-valor">${BRL(p.valor)}</div>
+        <div class="pag-data">${p.data}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const dupRows = dup.length > 0 ? `
+    <div style="font-size:10px;color:var(--light);margin:12px 0 6px;text-transform:uppercase;letter-spacing:1px">Já lançados (${dup.length})</div>
+    ${dup.map(p => `<div class="pag-row duplicado">
+      <div class="pag-info">
+        <div class="pag-nome-plan">${p.nome_plan || p.nome_asaas}</div>
+        <div class="pag-nome-asaas">${p.nome_asaas}</div>
+      </div>
+      <div class="pag-right">
+        <div class="pag-valor">${BRL(p.valor)}</div>
+        <div class="pag-data">${p.data}</div>
+        <span class="pag-tag dup">Duplicado</span>
+      </div>
+    </div>`).join('')}` : '';
+
+  content.innerHTML = stats + btnLancar +
+    (novos.length === 0 ? '<div class="asaas-empty">✓ Todos já lançados.</div>' : rows) +
+    dupRows;
 }
 
-function previewEdit(safeId, idx, nome) {
-  const valInput  = document.getElementById('editValor_' + safeId + '_' + idx);
-  const parcInput = document.getElementById('editParc_' + safeId + '_' + idx);
-  const preview   = document.getElementById('editPreview_' + safeId + '_' + idx);
-  if (!valInput || !parcInput || !preview) return;
-
-  const novoValor  = parseFloat(valInput.value) || 0;
-  const novaParc   = parseInt(parcInput.value) || 1;
-  const valParc    = round2(novoValor / novaParc);
-
-  // Calcular saldo já pago desta venda
-  const det = state.detail[nome];
-  const venda = det?.vendas?.[idx];
-  const valorOriginal = venda?.valor || 0;
-  const nParcOriginal = venda?.nparcelas || 1;
-  const valParcOrig   = round2(valorOriginal / nParcOriginal);
-
-  // Estimar pago nessa venda (aproximação por parcelas pagas)
-  let pagoEstimado = 0;
-  if (det?.parcelas) {
-    det.parcelas.forEach(p => { pagoEstimado += p.pago; });
-  }
-
-  const saldoNovo = round2(novoValor - pagoEstimado);
-  const ok = saldoNovo >= 0;
-
-  preview.innerHTML = `
-    <div>Novo valor: <strong>${BRL(novoValor)}</strong> em <strong>${novaParc}x</strong> de <strong>${BRL(valParc)}</strong></div>
-    <div>Já pago: <strong>${BRL(pagoEstimado)}</strong></div>
-    <div class="${ok?'ok':'warn'}">Saldo restante após edição: ${BRL(Math.abs(saldoNovo))} ${ok?'✓':' ⚠ Valor menor que o já pago!'}</div>`;
+function toggleTodos(check) {
+  document.querySelectorAll('.asaas-check').forEach(el => el.checked = check);
 }
 
-async function salvarEditVenda(nome, idx, vendaData, produto) {
-  const safeId    = nome.replace(/[^a-zA-Z0-9]/g,'_');
-  const valInput  = document.getElementById('editValor_' + safeId + '_' + idx);
-  const parcInput = document.getElementById('editParc_' + safeId + '_' + idx);
-  const vencInput = document.getElementById('editVenc_' + safeId + '_' + idx);
+async function lancarSelecionados() {
+  const checks = document.querySelectorAll('.asaas-check:checked');
+  if (!checks.length) { toast('⚠ Selecione ao menos um pagamento.'); return; }
 
-  const novoValor   = parseFloat(valInput?.value) || 0;
-  const novaParc    = parseInt(parcInput?.value) || 1;
-  const novoVenc    = vencInput?.value ? vencInput.value.split('-').reverse().join('/') : '';
+  const novos = _asaasPagamentos.filter(p => !p.duplicado);
+  const items = [];
 
-  if (!novoValor || !novaParc) { toast('⚠ Preencha valor e parcelas.'); return; }
+  checks.forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    const pag = novos[idx];
+    if (!pag) return;
 
-  toast('Salvando...');
-  const res = await apiPost({
-    action:          'editar_venda',
-    cliente:         nome,
-    venda_data:      vendaData,
-    produto:         produto,
-    novo_valor:      novoValor,
-    novas_parcelas:  novaParc,
-    novo_vencimento: novoVenc
+    // Verificar se tem nome — pode ter sido preenchido no input
+    let nomePlan = pag.nome_plan;
+    const input = document.getElementById('nomeInput_' + idx);
+    if (input && input.value.trim()) nomePlan = input.value.trim();
+
+    if (!nomePlan) {
+      toast('⚠ Preencha o nome para: ' + pag.nome_asaas);
+      return;
+    }
+    items.push({ cliente: nomePlan, valor: pag.valor, data: pag.data, nome_asaas: pag.nome_asaas });
   });
 
-  if (res?.ok) {
-    toast('✓ Venda atualizada — ' + (res.linhas||1) + ' linha(s) na planilha');
-    closeModal();
-    setTimeout(() => loadData(), 1500);
-  } else {
-    toast('⚠ ' + (res?.error || 'Erro ao salvar'));
+  if (!items.length) { toast('⚠ Nenhum item válido selecionado.'); return; }
+
+  const btn = document.querySelector('.btn-lancar-todos');
+  if (btn) { btn.disabled = true; btn.textContent = 'Lançando...'; }
+
+  const params = new URLSearchParams();
+  params.append('action', 'asaas_lancar');
+  params.append('items', JSON.stringify(items));
+  const url = `${API_URL}?${params.toString()}`;
+
+  try {
+    const r = await fetch(url);
+    const res = await r.json();
+    if (res?.ok) {
+      toast(`✓ ${res.lancados} recebimento(s) lançado(s)!`);
+      // Marcar como duplicados na lista
+      items.forEach(it => {
+        const idx = _asaasPagamentos.findIndex(p => p.nome_asaas===it.nome_asaas && p.valor===it.valor && p.data===it.data);
+        if (idx >= 0) _asaasPagamentos[idx].duplicado = true;
+      });
+      setTimeout(() => { buscarAsaas(); loadData(); }, 1500);
+    } else {
+      toast('⚠ Erro: ' + (res?.error || 'tente novamente'));
+      if (btn) { btn.disabled = false; btn.textContent = 'Lançar selecionados'; }
+    }
+  } catch(e) {
+    toast('⚠ Erro: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Lançar selecionados'; }
   }
 }
 
 function renderAll() {
-  renderDash(); renderCli(); renderProj(); renderRank(); renderCobrancas(); populateDatalist();
+  renderDash(); renderCli(); renderProj(); renderRank(); renderCobrancas(); renderAsaas(); populateDatalist();
 }
 
 function populateDatalist() {
@@ -1128,47 +1254,8 @@ function openModal(name) {
   if (det?.vendas?.length) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th><th></th></tr></thead>
-      <tbody>${[...det.vendas].sort((a,b)=>parseD(a.data)-parseD(b.data)).map((v,i)=>`
-        <tr>
-          <td>${v.data}</td>
-          <td>${v.produto}</td>
-          <td>${v.nparcelas}x</td>
-          <td>${BRL(v.valor)}</td>
-          <td style="padding:6px 4px"><button class="edit-btn" onclick="abrirEditVenda('${name.replace(/'/g,"\'")}',${i})">✎</button></td>
-        </tr>
-        <tr id="editVendaRow_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" style="display:none">
-          <td colspan="5" style="padding:0">
-            <div class="venda-edit-row">
-              <div class="venda-edit-title">
-                <span>✎ Editar — ${v.produto}</span>
-                <span style="cursor:pointer;color:var(--light)" onclick="fecharEditVenda('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i})">✕</span>
-              </div>
-              <div class="venda-edit-grid">
-                <div class="venda-edit-field">
-                  <label>Valor Total (R$)</label>
-                  <input type="number" id="editValor_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.valor}" step="0.01" min="0" oninput="previewEdit('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i},'${name.replace(/'/g,"\'")}')">
-                </div>
-                <div class="venda-edit-field">
-                  <label>Nº Parcelas</label>
-                  <input type="number" id="editParc_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.nparcelas}" min="1" max="24" oninput="previewEdit('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i},'${name.replace(/'/g,"\'")}')">
-                </div>
-              </div>
-              <div class="venda-edit-field" style="margin-bottom:8px">
-                <label>1º Vencimento</label>
-                <input type="date" id="editVenc_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.vencimento ? v.vencimento.split('/').reverse().join('-') : ''}">
-              </div>
-              <div class="venda-edit-preview" id="editPreview_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}">
-                Informe o novo valor e parcelas para ver o recalculo.
-              </div>
-              <div class="venda-edit-btns">
-                <button class="btn-cancelar-edit" onclick="fecharEditVenda('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i})">Cancelar</button>
-                <button class="btn-salvar-venda" onclick="salvarEditVenda('${name.replace(/'/g,"\'")}',${i},'${v.data}','${v.produto.replace(/'/g,"\'")}')">Salvar alteração</button>
-              </div>
-            </div>
-          </td>
-        </tr>`).join('')}
-      </tbody>
+      <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th></tr></thead>
+      <tbody>${[...det.vendas].sort((a,b)=>parseD(a.data)-parseD(b.data)).map(v=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td></tr>`).join('')}</tbody>
     </table></div>`;
   }
 
@@ -1393,6 +1480,7 @@ function startApp() {
   if (currentUser.role === 'vendedor') {
     document.getElementById('tab-ranking').classList.add('hidden');
     document.getElementById('tab-projecao').classList.add('hidden');
+    document.getElementById('tab-asaas').classList.add('hidden');
   }
   document.getElementById('fabGroup').style.display = 'flex';
   loadData();
