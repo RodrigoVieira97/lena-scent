@@ -197,6 +197,18 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
+.venda-edit-row{background:var(--card);border:1px solid var(--gold);border-radius:10px;padding:12px 14px;margin:8px 17px;}
+.venda-edit-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold-dim);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.venda-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.venda-edit-field label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--light);display:block;margin-bottom:4px;}
+.venda-edit-field input{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;font-family:"Inter",sans-serif;font-size:13px;color:var(--dark);outline:none;}
+.venda-edit-field input:focus{border-color:var(--gold);}
+.venda-edit-preview{font-size:11px;padding:8px 10px;background:var(--bg);border-radius:7px;border:1px solid var(--border);margin-bottom:8px;color:var(--mid);line-height:1.6;}
+.venda-edit-preview .ok{color:var(--green);font-weight:500;}
+.venda-edit-preview .warn{color:var(--amber);font-weight:500;}
+.venda-edit-btns{display:flex;gap:8px;}
+.btn-salvar-venda{flex:1;padding:9px;background:var(--dark);color:var(--gold);border:none;border-radius:8px;font-family:"Inter",sans-serif;font-size:13px;cursor:pointer;}
+.btn-cancelar-edit{padding:9px 14px;background:none;border:1px solid var(--border);border-radius:8px;font-family:"Inter",sans-serif;font-size:13px;color:var(--light);cursor:pointer;}
 .cob-card{background:var(--card);border:1px solid var(--border);border-radius:11px;margin-bottom:8px;overflow:hidden;cursor:pointer;transition:transform .15s;}
 .cob-card:hover{transform:translateY(-1px);}
 .cob-card.vencido{border-left:3px solid var(--red);}
@@ -820,6 +832,85 @@ function quickReceber(nome, valor) {
   }, 200);
 }
 
+// ── EDITAR VENDA ──────────────────────────────────────────────
+function abrirEditVenda(nome, idx) {
+  const safeId = nome.replace(/[^a-zA-Z0-9]/g,'_');
+  const row = document.getElementById('editVendaRow_' + safeId + '_' + idx);
+  if (row) {
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+    previewEdit(safeId, idx, nome);
+  }
+}
+
+function fecharEditVenda(safeId, idx) {
+  const row = document.getElementById('editVendaRow_' + safeId + '_' + idx);
+  if (row) row.style.display = 'none';
+}
+
+function previewEdit(safeId, idx, nome) {
+  const valInput  = document.getElementById('editValor_' + safeId + '_' + idx);
+  const parcInput = document.getElementById('editParc_' + safeId + '_' + idx);
+  const preview   = document.getElementById('editPreview_' + safeId + '_' + idx);
+  if (!valInput || !parcInput || !preview) return;
+
+  const novoValor  = parseFloat(valInput.value) || 0;
+  const novaParc   = parseInt(parcInput.value) || 1;
+  const valParc    = round2(novoValor / novaParc);
+
+  // Calcular saldo já pago desta venda
+  const det = state.detail[nome];
+  const venda = det?.vendas?.[idx];
+  const valorOriginal = venda?.valor || 0;
+  const nParcOriginal = venda?.nparcelas || 1;
+  const valParcOrig   = round2(valorOriginal / nParcOriginal);
+
+  // Estimar pago nessa venda (aproximação por parcelas pagas)
+  let pagoEstimado = 0;
+  if (det?.parcelas) {
+    det.parcelas.forEach(p => { pagoEstimado += p.pago; });
+  }
+
+  const saldoNovo = round2(novoValor - pagoEstimado);
+  const ok = saldoNovo >= 0;
+
+  preview.innerHTML = `
+    <div>Novo valor: <strong>${BRL(novoValor)}</strong> em <strong>${novaParc}x</strong> de <strong>${BRL(valParc)}</strong></div>
+    <div>Já pago: <strong>${BRL(pagoEstimado)}</strong></div>
+    <div class="${ok?'ok':'warn'}">Saldo restante após edição: ${BRL(Math.abs(saldoNovo))} ${ok?'✓':' ⚠ Valor menor que o já pago!'}</div>`;
+}
+
+async function salvarEditVenda(nome, idx, vendaData, produto) {
+  const safeId    = nome.replace(/[^a-zA-Z0-9]/g,'_');
+  const valInput  = document.getElementById('editValor_' + safeId + '_' + idx);
+  const parcInput = document.getElementById('editParc_' + safeId + '_' + idx);
+  const vencInput = document.getElementById('editVenc_' + safeId + '_' + idx);
+
+  const novoValor   = parseFloat(valInput?.value) || 0;
+  const novaParc    = parseInt(parcInput?.value) || 1;
+  const novoVenc    = vencInput?.value ? vencInput.value.split('-').reverse().join('/') : '';
+
+  if (!novoValor || !novaParc) { toast('⚠ Preencha valor e parcelas.'); return; }
+
+  toast('Salvando...');
+  const res = await apiPost({
+    action:          'editar_venda',
+    cliente:         nome,
+    venda_data:      vendaData,
+    produto:         produto,
+    novo_valor:      novoValor,
+    novas_parcelas:  novaParc,
+    novo_vencimento: novoVenc
+  });
+
+  if (res?.ok) {
+    toast('✓ Venda atualizada — ' + (res.linhas||1) + ' linha(s) na planilha');
+    closeModal();
+    setTimeout(() => loadData(), 1500);
+  } else {
+    toast('⚠ ' + (res?.error || 'Erro ao salvar'));
+  }
+}
+
 function renderAll() {
   renderDash(); renderCli(); renderProj(); renderRank(); renderCobrancas(); populateDatalist();
 }
@@ -1037,8 +1128,47 @@ function openModal(name) {
   if (det?.vendas?.length) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th></tr></thead>
-      <tbody>${[...det.vendas].sort((a,b)=>parseD(a.data)-parseD(b.data)).map(v=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td></tr>`).join('')}</tbody>
+      <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th><th></th></tr></thead>
+      <tbody>${[...det.vendas].sort((a,b)=>parseD(a.data)-parseD(b.data)).map((v,i)=>`
+        <tr>
+          <td>${v.data}</td>
+          <td>${v.produto}</td>
+          <td>${v.nparcelas}x</td>
+          <td>${BRL(v.valor)}</td>
+          <td style="padding:6px 4px"><button class="edit-btn" onclick="abrirEditVenda('${name.replace(/'/g,"\'")}',${i})">✎</button></td>
+        </tr>
+        <tr id="editVendaRow_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" style="display:none">
+          <td colspan="5" style="padding:0">
+            <div class="venda-edit-row">
+              <div class="venda-edit-title">
+                <span>✎ Editar — ${v.produto}</span>
+                <span style="cursor:pointer;color:var(--light)" onclick="fecharEditVenda('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i})">✕</span>
+              </div>
+              <div class="venda-edit-grid">
+                <div class="venda-edit-field">
+                  <label>Valor Total (R$)</label>
+                  <input type="number" id="editValor_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.valor}" step="0.01" min="0" oninput="previewEdit('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i},'${name.replace(/'/g,"\'")}')">
+                </div>
+                <div class="venda-edit-field">
+                  <label>Nº Parcelas</label>
+                  <input type="number" id="editParc_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.nparcelas}" min="1" max="24" oninput="previewEdit('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i},'${name.replace(/'/g,"\'")}')">
+                </div>
+              </div>
+              <div class="venda-edit-field" style="margin-bottom:8px">
+                <label>1º Vencimento</label>
+                <input type="date" id="editVenc_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.vencimento ? v.vencimento.split('/').reverse().join('-') : ''}">
+              </div>
+              <div class="venda-edit-preview" id="editPreview_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}">
+                Informe o novo valor e parcelas para ver o recalculo.
+              </div>
+              <div class="venda-edit-btns">
+                <button class="btn-cancelar-edit" onclick="fecharEditVenda('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i})">Cancelar</button>
+                <button class="btn-salvar-venda" onclick="salvarEditVenda('${name.replace(/'/g,"\'")}',${i},'${v.data}','${v.produto.replace(/'/g,"\'")}')">Salvar alteração</button>
+              </div>
+            </div>
+          </td>
+        </tr>`).join('')}
+      </tbody>
     </table></div>`;
   }
 
