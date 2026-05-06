@@ -730,53 +730,56 @@ function renderCobrancas() {
   if (!sec) return;
 
   const limite = window._cobLimite || IGNORAR_VENCIDO_ABAIXO_DE;
+  const filtro = window._cobFiltro || 'mes'; // padrão: a vencer no mês
   const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
-  const em7dias = new Date(hoje); em7dias.setDate(hoje.getDate()+7);
 
-  // Coletar parcelas a cobrar por cliente
+  // Coletar todas as parcelas em aberto relevantes
   const cobrancas = [];
   for (const [nome, sum] of Object.entries(state.summary)) {
     const det = state.detail[nome];
     if (!det?.parcelas) continue;
     for (const p of det.parcelas) {
       const falta = round2(p.valor - p.pago);
-      if (falta < limite) continue; // ignora residual
+      if (falta < limite) continue;
       const dt = parseD(p.data); dt.setHours(0,0,0,0);
-      if (dt > fimMes) continue; // só este mês e anteriores
-      const diasAtraso = Math.floor((hoje - dt) / 86400000);
-      let tipo = '';
-      if (dt < hoje) tipo = 'vencido';
-      else if (dt.getTime() === hoje.getTime()) tipo = 'vence-hoje';
-      else tipo = 'vence-breve';
-      cobrancas.push({nome, falta, data:p.data, dt, tipo, diasAtraso, parcela:p});
+      const vencido = dt < hoje;
+      const noMes = dt >= inicioMes && dt <= fimMes;
+      const diasAtraso = vencido ? Math.floor((hoje - dt) / 86400000) : 0;
+
+      // Filtrar conforme seleção
+      if (filtro === 'mes' && !(noMes && !vencido)) continue;       // a vencer no mês (futuros)
+      if (filtro === 'vencido_mes' && !(noMes && vencido)) continue; // vencidos NESTE mês
+      if (filtro === 'vencido_ant' && !(dt < inicioMes)) continue;  // vencidos antes deste mês
+
+      let tipo = vencido ? (dt < inicioMes ? 'vencido-ant' : 'vencido') : (dt.getTime()===hoje.getTime() ? 'vence-hoje' : 'vence-breve');
+      cobrancas.push({nome, falta, data:p.data, dt, tipo, diasAtraso});
     }
   }
 
-  // Ordenar: vencidos primeiro (mais antigo), depois vence-hoje, depois vence-breve
-  cobrancas.sort((a,b) => {
-    const ordem = {vencido:0,'vence-hoje':1,'vence-breve':2};
-    if (ordem[a.tipo] !== ordem[b.tipo]) return ordem[a.tipo] - ordem[b.tipo];
-    return a.dt - b.dt;
-  });
+  cobrancas.sort((a,b) => a.dt - b.dt);
 
-  const tipoLabel = {
-    vencido: d => d > 0 ? `Vencido há ${d} dia${d>1?'s':''}` : 'Vencido hoje',
+  const corMap = {'vencido':'var(--red)','vencido-ant':'var(--red)','vence-hoje':'var(--amber)','vence-breve':'var(--blue)'};
+  const tagMap = {
+    'vencido': c => `Vencido há ${c.diasAtraso}d`,
+    'vencido-ant': c => `Vencido há ${c.diasAtraso}d`,
     'vence-hoje': () => 'Vence hoje',
-    'vence-breve': (d,data) => `Vence em ${data}`
+    'vence-breve': c => `Vence ${c.data}`
   };
+  const borderMap = {'vencido':'var(--red)','vencido-ant':'var(--red)','vence-hoje':'var(--amber)','vence-breve':'var(--blue)'};
 
   const cards = cobrancas.map(c => `
-    <div class="cob-card ${c.tipo}" onclick="openModal('${c.nome.replace(/'/g,"\'")}')">
+    <div class="cob-card" style="border-left:3px solid ${borderMap[c.tipo]}" onclick="openModal('${c.nome.replace(/'/g,"\'")}')">
       <div class="cob-header">
-        <div class="cob-avatar" style="width:34px;height:34px;border-radius:50%;background:var(--dark);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--gold);flex-shrink:0">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--dark);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--gold);flex-shrink:0">${c.nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
         <div class="cob-info">
           <div class="cob-nome">${c.nome}</div>
           <div class="cob-detalhe">Parcela ${c.data}</div>
         </div>
         <div class="cob-valor">
-          <div class="cob-val" style="color:${c.tipo==='vencido'?'var(--red)':c.tipo==='vence-hoje'?'var(--amber)':'var(--blue)'}">${BRL(c.falta)}</div>
-          <div class="cob-tag ${c.tipo}">${c.tipo==='vencido'?tipoLabel.vencido(c.diasAtraso):c.tipo==='vence-hoje'?tipoLabel['vence-hoje']():tipoLabel['vence-breve'](0,c.data)}</div>
+          <div class="cob-val" style="color:${corMap[c.tipo]}">${BRL(c.falta)}</div>
+          <div class="cob-tag" style="color:${corMap[c.tipo]}">${tagMap[c.tipo](c)}</div>
         </div>
       </div>
       <button class="cob-quick-btn" onclick="event.stopPropagation();quickReceber('${c.nome.replace(/'/g,"\'")}',${c.falta})">↓ Registrar recebimento de ${BRL(c.falta)}</button>
@@ -784,15 +787,23 @@ function renderCobrancas() {
 
   const total = cobrancas.reduce((s,c)=>s+c.falta,0);
 
+  const filtros = [
+    {key:'mes',       label:'A vencer este mês'},
+    {key:'vencido_mes', label:'Vencidos este mês'},
+    {key:'vencido_ant', label:'Vencidos anteriores'},
+  ];
+
   sec.innerHTML = `
     <div class="cob-config">
-      <span>Ignorar saldo abaixo de</span>
-      <input type="number" id="cobLimiteInput" value="${limite}" min="0" max="100" onchange="window._cobLimite=parseFloat(this.value)||0;renderCobrancas()">
-      <span>R$ neste mês</span>
+      <span>Ignorar abaixo de R$</span>
+      <input type="number" id="cobLimiteInput" value="${limite}" min="0" max="500" onchange="window._cobLimite=parseFloat(this.value)||0;renderCobrancas()">
+    </div>
+    <div class="ftabs" style="margin-bottom:12px">
+      ${filtros.map(f=>`<div class="ftab${filtro===f.key?' active':''}" onclick="window._cobFiltro='${f.key}';renderCobrancas()">${f.label}</div>`).join('')}
     </div>
     ${cobrancas.length === 0
-      ? '<div class="cob-empty"><div class="cob-empty-icon">✓</div><div class="cob-empty-msg">Tudo em dia!</div><div class="cob-empty-sub">Nenhuma cobrança pendente este mês.</div></div>'
-      : '<div style="font-size:11px;color:var(--light);margin-bottom:10px">' + cobrancas.length + ' cobranças · Total ' + BRL(total) + '</div>' + cards
+      ? '<div class="cob-empty"><div class="cob-empty-icon">✓</div><div class="cob-empty-msg">Nenhuma cobrança neste filtro.</div><div class="cob-empty-sub">' + (filtro==='mes'?'Ninguém com parcelas a vencer este mês.':filtro==='vencido_mes'?'Nenhum vencido neste mês.':'Nenhum vencido de meses anteriores.') + '</div></div>'
+      : '<div style="font-size:11px;color:var(--light);margin-bottom:10px">' + cobrancas.length + ' cobranças · ' + BRL(total) + '</div>' + cards
     }`;
 }
 
