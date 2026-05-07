@@ -197,25 +197,25 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
 
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--dark);color:var(--gold);padding:10px 20px;border-radius:20px;font-size:13px;z-index:400;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
-.asaas-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.asaas-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
 .asaas-period{display:flex;gap:8px;align-items:center;flex:1;min-width:200px;}
-.asaas-period input{padding:8px 11px;background:var(--card);border:1px solid var(--border);border-radius:9px;font-family:"Inter",sans-serif;font-size:13px;color:var(--dark);outline:none;width:130px;}
+.asaas-period input{padding:7px 8px;background:var(--card);border:1px solid var(--border);border-radius:9px;font-family:"Inter",sans-serif;font-size:12px;color:var(--dark);outline:none;width:120px;min-width:0;}
 .asaas-period input:focus{border-color:var(--gold);}
-.btn-buscar{padding:9px 16px;background:var(--dark);color:var(--gold);border:none;border-radius:9px;font-family:"Inter",sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-buscar{padding:9px 14px;background:var(--dark);color:var(--gold);border:none;border-radius:9px;font-family:"Inter",sans-serif;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;}
 .btn-buscar:hover{background:var(--mid);}
 .btn-buscar:disabled{opacity:.5;cursor:not-allowed;}
 .btn-lancar-todos{padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:9px;font-family:"Inter",sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
 .btn-lancar-todos:disabled{opacity:.5;cursor:not-allowed;}
 .asaas-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-.astat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 12px;text-align:center;}
-.astat-v{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:600;}
-.astat-l{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--light);margin-top:2px;}
-.pag-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.astat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 8px;text-align:center;}
+.astat-v{font-family:"Cormorant Garamond",serif;font-size:18px;font-weight:600;}
+.astat-l{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--light);margin-top:2px;}
+.pag-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
 .pag-row.duplicado{opacity:.45;}
 .pag-row.nao-mapeado{border-left:3px solid var(--amber);}
 .pag-check{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
 .pag-info{flex:1;min-width:0;}
-.pag-nome-asaas{font-size:11px;color:var(--light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pag-nome-asaas{font-size:10px;color:var(--light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pag-nome-plan{font-size:13px;font-weight:500;}
 .pag-nome-input{width:100%;padding:5px 8px;margin-top:4px;background:var(--bg);border:1px solid var(--amber);border-radius:6px;font-family:"Inter",sans-serif;font-size:12px;color:var(--dark);outline:none;}
 .pag-nome-input:focus{border-color:var(--gold);}
@@ -930,10 +930,10 @@ function renderAsaasResultados() {
     </div>`;
 
   const btnLancar = novos.length > 0 ? `
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <button class="btn-lancar-todos" onclick="lancarSelecionados()">↓ Lançar selecionados (${BRL(total)})</button>
-      <button class="btn-buscar" onclick="toggleTodos(true)" style="background:none;border:1px solid var(--border);color:var(--mid)">✓ Todos</button>
-      <button class="btn-buscar" onclick="toggleTodos(false)" style="background:none;border:1px solid var(--border);color:var(--mid)">✗ Nenhum</button>
+    <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center">
+      <button class="btn-lancar-todos" id="btnLancarTodos" onclick="lancarSelecionados()" style="flex:1;min-width:0;font-size:12px;padding:9px 10px">↓ Lançar (${BRL(total)})</button>
+      <button onclick="toggleTodos(true)" style="padding:9px 10px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:12px;color:var(--mid);cursor:pointer;white-space:nowrap">✓ Todos</button>
+      <button onclick="toggleTodos(false)" style="padding:9px 10px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:12px;color:var(--mid);cursor:pointer;white-space:nowrap">✗ Nun</button>
     </div>` : '';
 
   const rows = novos.map((p, i) => {
@@ -945,7 +945,7 @@ function renderAsaasResultados() {
       : `<span class="pag-tag warn">⚠ Mapear</span>`;
 
     return `<div class="pag-row ${!p.mapeado?'nao-mapeado':''}">
-      <input type="checkbox" class="pag-check asaas-check" data-idx="${i}" ${checked}>
+      <input type="checkbox" class="pag-check asaas-check" data-idx="${i}" onchange="atualizarTotalAsaas()" ${checked}>
       <div class="pag-info">
         <div class="pag-nome-asaas">${p.nome_asaas}</div>
         <div class="pag-nome-plan">${nomePlan || '—'}</div>
@@ -978,8 +978,23 @@ function renderAsaasResultados() {
     dupRows;
 }
 
+
+function atualizarTotalAsaas() {
+  const novos = _asaasPagamentos.filter(p => !p.duplicado);
+  let total = 0;
+  let count = 0;
+  document.querySelectorAll('.asaas-check:checked').forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    const pag = novos[idx];
+    if (pag) { total += pag.valor; count++; }
+  });
+  const btn = document.getElementById('btnLancarTodos') || document.querySelector('.btn-lancar-todos');
+  if (btn) btn.textContent = `↓ Lançar (${BRL(total)})`;
+}
+
 function toggleTodos(check) {
   document.querySelectorAll('.asaas-check').forEach(el => el.checked = check);
+  atualizarTotalAsaas();
 }
 
 async function lancarSelecionados() {
