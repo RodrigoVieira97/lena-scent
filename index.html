@@ -1667,47 +1667,7 @@ function openModal(name) {
   if (det?.vendas?.length) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th><th></th></tr></thead>
-      <tbody>${[...det.vendas].sort((a,b)=>parseD(a.data)-parseD(b.data)).map((v,i)=>`
-        <tr>
-          <td>${v.data}</td>
-          <td>${v.produto}</td>
-          <td>${v.nparcelas}x</td>
-          <td>${BRL(v.valor)}</td>
-          <td style="padding:6px 4px"><button class="edit-btn" onclick="abrirEditVenda('${name.replace(/'/g,"\'")}',${i})">✎</button></td>
-        </tr>
-        <tr id="editVendaRow_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" style="display:none">
-          <td colspan="5" style="padding:0">
-            <div class="venda-edit-row">
-              <div class="venda-edit-title">
-                <span>✎ Editar — ${v.produto}</span>
-                <span style="cursor:pointer;color:var(--light)" onclick="fecharEditVenda('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i})">✕</span>
-              </div>
-              <div class="venda-edit-grid">
-                <div class="venda-edit-field">
-                  <label>Valor Total (R$)</label>
-                  <input type="number" id="editValor_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.valor}" step="0.01" min="0" oninput="previewEdit('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i},'${name.replace(/'/g,"\'")}')">
-                </div>
-                <div class="venda-edit-field">
-                  <label>Nº Parcelas</label>
-                  <input type="number" id="editParc_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.nparcelas}" min="1" max="24" oninput="previewEdit('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i},'${name.replace(/'/g,"\'")}')">
-                </div>
-              </div>
-              <div class="venda-edit-field" style="margin-bottom:8px">
-                <label>1º Vencimento</label>
-                <input type="date" id="editVenc_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}" value="${v.vencimento ? v.vencimento.split('/').reverse().join('-') : ''}">
-              </div>
-              <div class="venda-edit-preview" id="editPreview_${name.replace(/[^a-zA-Z0-9]/g,'_')}_${i}">
-                Informe o novo valor e parcelas para ver o recalculo.
-              </div>
-              <div class="venda-edit-btns">
-                <button class="btn-cancelar-edit" onclick="fecharEditVenda('${name.replace(/[^a-zA-Z0-9]/g,'_')}',${i})">Cancelar</button>
-                <button class="btn-salvar-venda" onclick="salvarEditVenda('${name.replace(/'/g,"\'")}',${i},'${v.data}','${v.produto.replace(/'/g,"\'")}')">Salvar alteração</button>
-              </div>
-            </div>
-          </td>
-        </tr>`).join('')}
-      </tbody>
+      
     </table></div>`;
   }
 
