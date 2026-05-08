@@ -1280,6 +1280,9 @@ function openModal(name) {
   const det = state.detail[name];
   const pct = sum.tv>0?Math.round(sum.tp/sum.tv*100):100;
 
+  // DEBUG temporário
+  console.log('openModal:', name, '| det:', !!det, '| vendas:', det?.vendas?.length, '| parcelas:', det?.parcelas?.length);
+
   let vendasHtml = '';
   if (det?.vendas?.length) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
@@ -1343,6 +1346,25 @@ function openModal(name) {
       </div>`;
     }).join('');
   } else parcHtml += '<div class="empty">Sem parcelas</div>';
+
+  // Fallback: se vendas vazio mas há parcelas, reconstruir via parcelas
+  if (!det?.vendas?.length && det?.parcelas?.length) {
+    const fbMap = {};
+    for (const p of det.parcelas) {
+      const k = (p.venda_data||p.data)+'|'+(p.produto||'');
+      if (!fbMap[k]) fbMap[k] = {data:p.venda_data||p.data, produto:p.produto||'—', valor:0, nparcelas:0};
+      fbMap[k].valor = round2(fbMap[k].valor + p.valor);
+      fbMap[k].nparcelas++;
+    }
+    const fbVendas = Object.values(fbMap).filter(v=>v.data).sort((a,b)=>parseD(a.data)-parseD(b.data));
+    if (fbVendas.length) {
+      vendasHtml = `<div class="m-stitle">Vendas</div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th><th></th></tr></thead>
+        <tbody>${fbVendas.map((v,i)=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td><td></td></tr>`).join('')}</tbody>
+      </table></div>`;
+    }
+  }
 
   let recebHtml = `<div class="m-stitle">Recebimentos <span style="color:var(--green);font-size:11px">— total ${BRL(sum.tp)}</span></div>`;
   if (det?.recebimentos?.length) {
@@ -1666,6 +1688,9 @@ function openModal(name) {
   const det = state.detail[name];
   const pct = sum.tv>0?Math.round(sum.tp/sum.tv*100):100;
 
+  // DEBUG temporário
+  console.log('openModal:', name, '| det:', !!det, '| vendas:', det?.vendas?.length, '| parcelas:', det?.parcelas?.length);
+
   let vendasHtml = '';
   if (det?.vendas?.length) {
     vendasHtml = `<div class="m-stitle">Vendas</div>
@@ -1689,6 +1714,25 @@ function openModal(name) {
       </div>`;
     }).join('');
   } else parcHtml += '<div class="empty">Sem parcelas</div>';
+
+  // Fallback: se vendas vazio mas há parcelas, reconstruir via parcelas
+  if (!det?.vendas?.length && det?.parcelas?.length) {
+    const fbMap = {};
+    for (const p of det.parcelas) {
+      const k = (p.venda_data||p.data)+'|'+(p.produto||'');
+      if (!fbMap[k]) fbMap[k] = {data:p.venda_data||p.data, produto:p.produto||'—', valor:0, nparcelas:0};
+      fbMap[k].valor = round2(fbMap[k].valor + p.valor);
+      fbMap[k].nparcelas++;
+    }
+    const fbVendas = Object.values(fbMap).filter(v=>v.data).sort((a,b)=>parseD(a.data)-parseD(b.data));
+    if (fbVendas.length) {
+      vendasHtml = `<div class="m-stitle">Vendas</div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th><th></th></tr></thead>
+        <tbody>${fbVendas.map((v,i)=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td><td></td></tr>`).join('')}</tbody>
+      </table></div>`;
+    }
+  }
 
   let recebHtml = `<div class="m-stitle">Recebimentos <span style="color:var(--green);font-size:11px">— total ${BRL(sum.tp)}</span></div>`;
   if (det?.recebimentos?.length) {
