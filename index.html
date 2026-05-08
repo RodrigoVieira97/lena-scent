@@ -717,19 +717,20 @@ function buildStateFromRaw() {
     }
     const mergedParc = Object.values(dateMap).sort((a,b) => parseD(a.data)-parseD(b.data));
 
-    // Rebuild vendas per client (group by venda_data+produto)
-    const vendaMap = {};
-    for (const p of d.parcelas) {
-      const k = (p.venda_data||'')+'|'+(p.produto||'');
-      if (!vendaMap[k]) vendaMap[k] = {data:p.venda_data||'', produto:p.produto||'', valor:0, nparcelas:0, vendedor:p.vendedor||''};
-      vendaMap[k].valor = round2(vendaMap[k].valor + p.valor);
-      vendaMap[k].nparcelas++;
-    }
+    // Usar d.vendas diretamente (vem da API, sem remontar via parcelas)
+    const vendasFormatadas = d.vendas.map(v => ({
+      data:       v.data,
+      produto:    v.produto,
+      valor:      jsParseValor(v.valor),
+      nparcelas:  v.parcelas || 1,
+      vencimento: v.vencimento,
+      vendedor:   v.vendedor || ''
+    })).sort((a,b) => parseD(a.data)-parseD(b.data));
 
     state.detail[cli] = {
       parcelas: mergedParc,
       recebimentos: [...d.recebimentos].sort((a,b) => parseD(a.data)-parseD(b.data)),
-      vendas: Object.values(vendaMap).sort((a,b) => parseD(a.data)-parseD(b.data))
+      vendas: vendasFormatadas
     };
   }
 
