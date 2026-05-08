@@ -318,6 +318,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
     <div class="user-chip">
       <div class="sync-indicator" id="syncDot"></div>
       <span class="user-name" id="userLabel"></span>
+      <span style="color:var(--gold-dim);font-size:10px;letter-spacing:.5px" id="versionLabel"></span>
       <button class="logout-btn" onclick="doLogout()">sair</button>
     </div>
   </header>
@@ -526,6 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
+const APP_VERSION = 'v35.1';
 const TODAY = new Date();
 const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
@@ -1888,6 +1890,15 @@ function startApp() {
   document.getElementById('loginScreen').classList.add('hidden');
   document.getElementById('app').classList.add('visible');
   document.getElementById('userLabel').textContent = currentUser.display;
+  // Mostrar versão HTML
+  const verEl = document.getElementById('versionLabel');
+  if (verEl) verEl.textContent = APP_VERSION;
+  // Buscar versão do GAS
+  apiGet('ping').then(res => {
+    if (res?.gas_version && verEl) {
+      verEl.textContent = APP_VERSION + ' | GAS ' + res.gas_version;
+    }
+  }).catch(() => {});
 
   // Permissões por perfil
   if (currentUser.role === 'vendedor') {
