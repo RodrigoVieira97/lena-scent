@@ -395,7 +395,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Valor Total (R$)</label>
-          <input class="form-input" id="v-valor" type="number" step="0.01" min="0" placeholder="0,00">
+          <input class="form-input" id="v-valor" type="text" inputmode="decimal" placeholder="0,00">
         </div>
         <div class="form-group">
           <label class="form-label">Parcelas</label>
@@ -438,7 +438,7 @@ header{background:var(--dark);padding:12px 16px;display:flex;align-items:center;
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Valor Recebido (R$)</label>
-          <input class="form-input" id="r-valor" type="number" step="0.01" min="0" placeholder="0,00">
+          <input class="form-input" id="r-valor" type="text" inputmode="decimal" placeholder="0,00">
         </div>
         <div class="form-group">
           <label class="form-label">Data</label>
@@ -527,7 +527,18 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v37.6';
+const APP_VERSION = 'v37.9';
+// Parsear valor BR: "50,50" ou "50.50" -> 50.50
+function parseValorInput(s) {
+  if (!s) return 0;
+  s = String(s).trim().replace(/[^\d,\.]/g, '');
+  // Se tem vírgula E ponto: "1.234,56" -> remove ponto de milhar, troca vírgula por ponto
+  if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+  // Só vírgula: "50,50" -> "50.50"
+  else if (s.includes(',')) s = s.replace(',', '.');
+  return parseFloat(s) || 0;
+}
+
 const TODAY = new Date();
 const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
@@ -940,6 +951,33 @@ function renderAsaas() {
   `;
 }
 
+
+async function verificarDuplicatasAsaas() {
+  if (!_asaasPagamentos.length) return;
+  // Enviar em batches de 20 para verificar
+  const BATCH = 20;
+  for (let i = 0; i < _asaasPagamentos.length; i += BATCH) {
+    const batch = _asaasPagamentos.slice(i, i + BATCH).map(p => ({
+      id: p.id, nome_asaas: p.nome_asaas, nome_plan: p.nome_plan,
+      valor: p.valor, data: p.data
+    }));
+    try {
+      const params = new URLSearchParams();
+      params.append('action', 'asaas_verificar');
+      params.append('items', JSON.stringify(batch));
+      const r = await fetch(`${API_URL}?${params.toString()}`);
+      const text = await r.text();
+      const res = JSON.parse(text);
+      if (res?.ok && res.verificados) {
+        res.verificados.forEach(v => {
+          const pag = _asaasPagamentos.find(p => p.id === v.id);
+          if (pag) pag.duplicado = v.duplicado;
+        });
+      }
+    } catch(e) { console.error('Erro verificar:', e); }
+  }
+}
+
 async function buscarAsaas() {
   const inicio = document.getElementById('asaasInicio').value;
   const fim    = document.getElementById('asaasFim').value;
@@ -961,6 +999,8 @@ async function buscarAsaas() {
     }
 
     _asaasPagamentos = res.pagamentos || [];
+    // Verificar duplicatas via GAS (mais preciso que frontend)
+    await verificarDuplicatasAsaas();
     renderAsaasResultados();
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Buscar pagamentos';
@@ -1576,7 +1616,7 @@ function todayBR() {
 async function salvarVenda() {
   const cli      = document.getElementById('v-cliente').value.trim();
   const produto  = document.getElementById('v-produto').value.trim();
-  const valor    = parseFloat(document.getElementById('v-valor').value);
+  const valor    = parseValorInput(document.getElementById('v-valor').value);
   const nparc    = parseInt(document.getElementById('v-parcelas').value);
   const vencInput= document.getElementById('v-vencimento').value;
   const dataInput= document.getElementById('v-data').value;
@@ -1619,7 +1659,7 @@ async function salvarVenda() {
 
 async function salvarRecebimento() {
   const cli   = document.getElementById('r-cliente').value.trim();
-  const valor = parseFloat(document.getElementById('r-valor').value);
+  const valor = parseValorInput(document.getElementById('r-valor').value);
   const dataInput = document.getElementById('r-data').value;
 
   if (!cli||!valor||!dataInput) { alert('Preencha todos os campos.'); return; }
