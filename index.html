@@ -527,7 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v37.3';
+const APP_VERSION = 'v37.5';
 const TODAY = new Date();
 const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
@@ -593,14 +593,18 @@ async function apiPost(body) {
   if (!API_URL || API_URL.includes('COLE_AQUI')) return {ok:false, error:'API não configurada'};
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    // Parâmetros diretos na URL — suporte total a acentos e caracteres especiais
+    const timeout = setTimeout(() => controller.abort(), 20000);
     const params = new URLSearchParams();
     for (const [k,v] of Object.entries(body)) params.append(k, String(v));
     const url = `${API_URL}?${params.toString()}`;
     const r = await fetch(url, {signal: controller.signal});
     clearTimeout(timeout);
-    return r.json();
+    const text = await r.text();
+    try { return JSON.parse(text); }
+    catch(e) {
+      console.error('GAS retornou não-JSON:', text.slice(0,200));
+      return {ok:false, error:'Resposta inválida do servidor. Tente novamente.'};
+    }
   } catch(e) {
     if (e.name === 'AbortError') return {ok:false, error:'Tempo esgotado. Tente novamente.'};
     return {ok:false, error: e.message};
@@ -1620,7 +1624,7 @@ async function salvarRecebimento() {
   const res = await apiPost({
     action: 'novo_recebimento',
     cliente: cli, valor, data_recebimento: dataDisplay,
-    vendedor: document.getElementById('v-vendedor')?.value || currentUser.display
+    vendedor: document.getElementById('r-vendedor')?.value || currentUser.display
   });
 
   btn.disabled = false; btn.textContent = 'Registrar Recebimento';
