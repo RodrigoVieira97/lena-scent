@@ -527,7 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v36.0';
+const APP_VERSION = 'v37.0';
 const TODAY = new Date();
 const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
@@ -650,111 +650,140 @@ function jsParseValor(v) {
 }
 
 function buildStateFromRaw() {
-  // Build per-client summary and detail from raw vendas/recebimentos
-  const clients = {};
+  // Normaliza nome para chave canônica (resolve NBSP, espaços extras, case)
+  const normNome = s => String(s||'').replace(/\s+/g,' ').trim();
 
-  // Process vendas → generate parcelas FIFO-ready
-  for (const v of state.vendas) {
-    const cli = v.cliente;
-    if (!clients[cli]) clients[cli] = {vendas:[], parcelas:[], recebimentos:[], tv:0, tp:0};
-    const valParc = round2(jsParseValor(v.valor) / Math.max(1, v.parcelas));
-    const vencDate = parseD(v.vencimento);
-    for (let i = 0; i < v.parcelas; i++) {
-      const dt = addMonths(vencDate, i);
-      clients[cli].parcelas.push({data: fmtD(dt), valor: valParc, pago: 0, venda_data: v.data, produto: v.produto});
+  const clients = {};        // key (canonical) → {vendas, parcelas, recebimentos, tv, tp, displayName}
+  const nameIndex = {};      // chave_lower → key (canonical)
+
+  // Função para obter ou criar bucket de cliente, sempre usando o nome canônico
+  const getBucket = (rawName) => {
+    const display = normNome(rawName);
+    const key = display.toLowerCase();
+    if (!clients[key]) {
+      clients[key] = {vendas:[], parcelas:[], recebimentos:[], tv:0, tp:0, displayName: display};
+      nameIndex[key] = display;
     }
-    clients[cli].vendas.push(v);
-    clients[cli].tv = round2(clients[cli].tv + jsParseValor(v.valor));
+    return {key, bucket: clients[key]};
+  };
+
+  // 1. Processar vendas
+  for (const v of state.vendas) {
+    const {key, bucket} = getBucket(v.cliente);
+    const valor = jsParseValor(v.valor);
+    const nparc = Math.max(1, parseInt(v.parcelas) || 1);
+    const valParc = round2(valor / nparc);
+    const vencDate = parseD(v.vencimento);
+
+    for (let i = 0; i < nparc; i++) {
+      const dt = addMonths(vencDate, i);
+      bucket.parcelas.push({
+        data: fmtD(dt),
+        valor: valParc,
+        pago: 0,
+        venda_data: v.data,
+        produto: v.produto,
+        vendedor: v.vendedor || ''
+      });
+    }
+    bucket.vendas.push({
+      data: v.data,
+      produto: v.produto,
+      valor: valor,
+      nparcelas: nparc,
+      vencimento: v.vencimento,
+      vendedor: v.vendedor || ''
+    });
+    bucket.tv = round2(bucket.tv + valor);
   }
 
-  // Sort parcelas by date per client
-  for (const cli of Object.keys(clients)) {
-    clients[cli].parcelas.sort((a,b) => parseD(a.data) - parseD(b.data));
+  // 2. Ordenar parcelas por data (necessário para FIFO)
+  for (const key of Object.keys(clients)) {
+    clients[key].parcelas.sort((a,b) => parseD(a.data) - parseD(b.data));
   }
 
-  // Process recebimentos → FIFO apply
+  // 3. Processar recebimentos com FIFO
   const recebByClient = {};
   for (const r of state.recebimentos) {
-    if (!recebByClient[r.cliente]) recebByClient[r.cliente] = [];
-    recebByClient[r.cliente].push(r);
+    const display = normNome(r.cliente);
+    const key = display.toLowerCase();
+    if (!recebByClient[key]) recebByClient[key] = [];
+    recebByClient[key].push(r);
   }
 
-  for (const [cli, recList] of Object.entries(recebByClient)) {
-    if (!clients[cli]) clients[cli] = {vendas:[], parcelas:[], recebimentos:[], tv:0, tp:0};
+  for (const [key, recList] of Object.entries(recebByClient)) {
+    const {bucket} = getBucket(recList[0].cliente); // garante que existe
     const sorted = [...recList].sort((a,b) => parseD(a.data) - parseD(b.data));
+
     for (const rec of sorted) {
       let saldo = jsParseValor(rec.valor);
-      let fifoLimit = 0;
-      for (const p of clients[cli].parcelas) {
-        if (saldo <= 0.01 || ++fifoLimit > 500) break;
+      let safety = 500;
+      for (const p of bucket.parcelas) {
+        if (safety-- <= 0) break;
+        if (saldo <= 0) break;
         const falta = round2(p.valor - p.pago);
-        if (falta <= 0.01) continue;
-        const abate = Math.min(saldo, falta);
-        p.pago = round2(p.pago + abate);
-        saldo = round2(saldo - abate);
+        if (falta <= 0.005) continue;
+        const aplica = Math.min(saldo, falta);
+        p.pago = round2(p.pago + aplica);
+        saldo = round2(saldo - aplica);
       }
-      clients[cli].tp = round2(clients[cli].tp + jsParseValor(rec.valor));
-      clients[cli].recebimentos.push(rec);
+      bucket.recebimentos.push({data: rec.data, valor: jsParseValor(rec.valor), vendedor: rec.vendedor || ''});
+      bucket.tp = round2(bucket.tp + jsParseValor(rec.valor));
     }
   }
 
-  // Build summary + merged parcelas detail
+  // 4. Construir state.summary e state.detail
   state.summary = {};
-  state.detail = {};
+  state.detail  = {};
   let totalV = 0, totalP = 0;
 
-  for (const [cli, d] of Object.entries(clients)) {
+  for (const [key, d] of Object.entries(clients)) {
+    const display = d.displayName;
     const saldo = round2(Math.max(0, d.tv - d.tp));
     const hasVencido = d.parcelas.some(p => stParcela(p) === 'vencido');
-    state.summary[cli] = {n:cli, tv:d.tv, tp:d.tp, s:saldo, nparc:d.parcelas.length, v:hasVencido};
+    state.summary[display] = {n: display, tv: d.tv, tp: d.tp, s: saldo, nparc: d.parcelas.length, v: hasVencido};
     totalV = round2(totalV + d.tv);
     totalP = round2(totalP + d.tp);
 
-    // Merge same-day parcelas
+    // Mesclar parcelas do mesmo dia
     const dateMap = {};
     for (const p of d.parcelas) {
-      if (!dateMap[p.data]) dateMap[p.data] = {data:p.data, valor:0, pago:0};
+      if (!dateMap[p.data]) dateMap[p.data] = {data: p.data, valor: 0, pago: 0};
       dateMap[p.data].valor = round2(dateMap[p.data].valor + p.valor);
       dateMap[p.data].pago  = round2(dateMap[p.data].pago  + p.pago);
     }
-    const mergedParc = Object.values(dateMap).sort((a,b) => parseD(a.data)-parseD(b.data));
+    const mergedParc = Object.values(dateMap).sort((a,b) => parseD(a.data) - parseD(b.data));
 
-    // Usar d.vendas diretamente (vem da API, sem remontar via parcelas)
-    const vendasFormatadas = d.vendas.map(v => ({
-      data:       v.data,
-      produto:    v.produto,
-      valor:      jsParseValor(v.valor),
-      nparcelas:  v.parcelas || 1,
-      vencimento: v.vencimento,
-      vendedor:   v.vendedor || ''
-    })).sort((a,b) => parseD(a.data)-parseD(b.data));
+    // VENDAS — usar diretamente d.vendas (já formatado)
+    const vendasFormatadas = [...d.vendas].sort((a,b) => parseD(a.data) - parseD(b.data));
 
-    state.detail[cli] = {
+    state.detail[display] = {
       parcelas: mergedParc,
-      recebimentos: [...d.recebimentos].sort((a,b) => parseD(a.data)-parseD(b.data)),
+      recebimentos: [...d.recebimentos].sort((a,b) => parseD(a.data) - parseD(b.data)),
       vendas: vendasFormatadas
     };
   }
 
   state.totals = {vendas: totalV, recebido: totalP, saldo: round2(totalV - totalP)};
 
-  // Build monthly projection
+  // 5. Projeção mensal
   const monthly = {};
-  for (const [cli, d] of Object.entries(clients)) {
+  for (const [key, d] of Object.entries(clients)) {
     for (const p of d.parcelas) {
-      const k = monthKey(parseD(p.data));
-      if (!monthly[k]) monthly[k] = {prov:0, paid:0, receb:0};
-      monthly[k].prov = round2(monthly[k].prov + p.valor);
-      monthly[k].paid = round2(monthly[k].paid + p.pago);
+      const dt = parseD(p.data);
+      const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      if (!monthly[k]) monthly[k] = {prov:0, receb:0, paid:0};
+      monthly[k].prov  = round2(monthly[k].prov + p.valor);
+      monthly[k].paid  = round2(monthly[k].paid + p.pago);
+    }
+    for (const r of d.recebimentos) {
+      const dt = parseD(r.data);
+      const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      if (!monthly[k]) monthly[k] = {prov:0, receb:0, paid:0};
+      monthly[k].receb = round2(monthly[k].receb + r.valor);
     }
   }
-  for (const r of state.recebimentos) {
-    const k = monthKey(parseD(r.data));
-    if (!monthly[k]) monthly[k] = {prov:0, paid:0, receb:0};
-    monthly[k].receb = round2(monthly[k].receb + r.valor);
-  }
 
-  const MONTH_LABELS = {'2025-03':'Mar/25','2025-12':'Dez/25','2026-01':'Jan/26','2026-02':'Fev/26','2026-03':'Mar/26','2026-04':'Abr/26','2026-05':'Mai/26','2026-06':'Jun/26','2026-07':'Jul/26','2026-08':'Ago/26','2026-09':'Set/26','2026-10':'Out/26','2026-11':'Nov/26','2026-12':'Dez/26'};
   state.monthly = Object.entries(monthly).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>({
     key:k, label:MONTH_LABELS[k]||k, prov:v.prov, receb:v.receb, aberto:round2(Math.max(0,v.prov-v.paid))
   }));
@@ -1714,25 +1743,6 @@ function openModal(name) {
       </div>`;
     }).join('');
   } else parcHtml += '<div class="empty">Sem parcelas</div>';
-
-  // Fallback: se vendas vazio mas há parcelas, reconstruir via parcelas
-  if (!det?.vendas?.length && det?.parcelas?.length) {
-    const fbMap = {};
-    for (const p of det.parcelas) {
-      const k = (p.venda_data||p.data)+'|'+(p.produto||'');
-      if (!fbMap[k]) fbMap[k] = {data:p.venda_data||p.data, produto:p.produto||'—', valor:0, nparcelas:0};
-      fbMap[k].valor = round2(fbMap[k].valor + p.valor);
-      fbMap[k].nparcelas++;
-    }
-    const fbVendas = Object.values(fbMap).filter(v=>v.data).sort((a,b)=>parseD(a.data)-parseD(b.data));
-    if (fbVendas.length) {
-      vendasHtml = `<div class="m-stitle">Vendas</div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Data</th><th>Produto</th><th>Parc.</th><th>Valor</th><th></th></tr></thead>
-        <tbody>${fbVendas.map((v,i)=>`<tr><td>${v.data}</td><td>${v.produto}</td><td>${v.nparcelas}x</td><td>${BRL(v.valor)}</td><td></td></tr>`).join('')}</tbody>
-      </table></div>`;
-    }
-  }
 
   let recebHtml = `<div class="m-stitle">Recebimentos <span style="color:var(--green);font-size:11px">— total ${BRL(sum.tp)}</span></div>`;
   if (det?.recebimentos?.length) {
