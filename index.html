@@ -527,7 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v37.5';
+const APP_VERSION = 'v37.6';
 const TODAY = new Date();
 const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
@@ -1082,26 +1082,34 @@ async function lancarSelecionados() {
   const btn = document.querySelector('.btn-lancar-todos');
   if (btn) { btn.disabled = true; btn.textContent = 'Lançando...'; }
 
-  const params = new URLSearchParams();
-  params.append('action', 'asaas_lancar');
-  params.append('items', JSON.stringify(items));
-  const url = `${API_URL}?${params.toString()}`;
-
+  // Enviar em batches de 10 para evitar URL muito longa
+  const BATCH_SIZE = 10;
+  let totalLancados = 0;
   try {
-    const r = await fetch(url);
-    const res = await r.json();
-    if (res?.ok) {
-      toast(`✓ ${res.lancados} recebimento(s) lançado(s)!`);
-      // Marcar como duplicados na lista
-      items.forEach(it => {
-        const idx = _asaasPagamentos.findIndex(p => p.nome_asaas===it.nome_asaas && p.valor===it.valor && p.data===it.data);
-        if (idx >= 0) _asaasPagamentos[idx].duplicado = true;
-      });
-      setTimeout(() => { buscarAsaas(); loadData(); }, 1500);
-    } else {
-      toast('⚠ Erro: ' + (res?.error || 'tente novamente'));
-      if (btn) { btn.disabled = false; btn.textContent = 'Lançar selecionados'; }
+    for (let i = 0; i < items.length; i += BATCH_SIZE) {
+      const batch = items.slice(i, i + BATCH_SIZE);
+      const params = new URLSearchParams();
+      params.append('action', 'asaas_lancar');
+      params.append('items', JSON.stringify(batch));
+      const url = `${API_URL}?${params.toString()}`;
+      const r = await fetch(url);
+      const text = await r.text();
+      let res;
+      try { res = JSON.parse(text); } catch(e) { res = {ok:false, error:'Resposta inválida'}; }
+      if (res?.ok) {
+        totalLancados += res.lancados || 0;
+        batch.forEach(it => {
+          const idx = _asaasPagamentos.findIndex(p => p.nome_asaas===it.nome_asaas && p.valor===it.valor && p.data===it.data);
+          if (idx >= 0) _asaasPagamentos[idx].duplicado = true;
+        });
+      } else {
+        toast('⚠ Erro no lote ' + (i/BATCH_SIZE+1) + ': ' + (res?.error || 'tente novamente'));
+        if (btn) { btn.disabled = false; btn.textContent = 'Lançar selecionados'; }
+        return;
+      }
     }
+    toast(`✓ ${totalLancados} recebimento(s) lançado(s)! Atualizando...`);
+    setTimeout(() => { buscarAsaas(); loadData(); }, 4000);
   } catch(e) {
     toast('⚠ Erro: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = 'Lançar selecionados'; }
