@@ -527,7 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v37.2';
+const APP_VERSION = 'v37.3';
 const TODAY = new Date();
 const IGNORAR_VENCIDO_ABAIXO_DE = 15; // R$ — parcelas com saldo abaixo deste valor não aparecem como vencidas
 const CURRENT_MONTH = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
@@ -649,6 +649,14 @@ function jsParseValor(v) {
   return isNaN(n) ? 0 : Math.round(n * 100) / 100;
 }
 
+const MONTH_LABELS = {
+  '2025-10':'Out/25','2025-11':'Nov/25','2025-12':'Dez/25',
+  '2026-01':'Jan/26','2026-02':'Fev/26','2026-03':'Mar/26',
+  '2026-04':'Abr/26','2026-05':'Mai/26','2026-06':'Jun/26',
+  '2026-07':'Jul/26','2026-08':'Ago/26','2026-09':'Set/26',
+  '2026-10':'Out/26','2026-11':'Nov/26','2026-12':'Dez/26',
+  '2027-01':'Jan/27','2027-02':'Fev/27','2027-03':'Mar/27',
+};
 function buildStateFromRaw() {
   // Normaliza nome para chave canônica (resolve NBSP, espaços extras, case)
   const normNome = s => String(s||'').replace(/\s+/g,' ').trim();
