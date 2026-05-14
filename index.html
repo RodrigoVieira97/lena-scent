@@ -527,7 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v37.9';
+const APP_VERSION = 'v38.1';
 // Parsear valor BR: "50,50" ou "50.50" -> 50.50
 function parseValorInput(s) {
   if (!s) return 0;
@@ -828,8 +828,9 @@ function renderCobrancas() {
   const sec = document.getElementById('sec-cobrancas');
   if (!sec) return;
 
-  const limite = window._cobLimite || IGNORAR_VENCIDO_ABAIXO_DE;
-  const filtro = window._cobFiltro || 'mes'; // padrão: a vencer no mês
+  const limite   = window._cobLimite   || IGNORAR_VENCIDO_ABAIXO_DE;
+  const filtro   = window._cobFiltro   || 'mes';
+  const vendedor = window._cobVendedor || ''; // padrão: a vencer no mês
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const fimMes = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0);
@@ -853,6 +854,13 @@ function renderCobrancas() {
       if (filtro === 'vencido_ant' && !(dt < inicioMes)) continue;  // vencidos antes deste mês
 
       let tipo = vencido ? (dt < inicioMes ? 'vencido-ant' : 'vencido') : (dt.getTime()===hoje.getTime() ? 'vence-hoje' : 'vence-breve');
+      // Filtrar por vendedor se selecionado
+      if (vendedor) {
+        const det = state.detail[nome];
+        const temVendedor = det?.vendas?.some(v => v.vendedor === vendedor) ||
+                            det?.parcelas?.some(p => p.vendedor === vendedor);
+        if (!temVendedor) continue;
+      }
       cobrancas.push({nome, falta, data:p.data, dt, tipo, diasAtraso});
     }
   }
@@ -893,9 +901,16 @@ function renderCobrancas() {
   ];
 
   sec.innerHTML = `
-    <div class="cob-config">
+    <div class="cob-config" style="flex-wrap:wrap;gap:10px">
       <span>Ignorar abaixo de R$</span>
       <input type="number" id="cobLimiteInput" value="${limite}" min="0" max="500" onchange="window._cobLimite=parseFloat(this.value)||0;renderCobrancas()">
+      <span>Vendedor</span>
+      <select id="cobVendedorInput" onchange="window._cobVendedor=this.value;renderCobrancas()" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:'Inter',sans-serif;font-size:12px;background:var(--bg);color:var(--dark);outline:none">
+        <option value="" ${vendedor===''?'selected':''}>Todos</option>
+        <option value="Rodrigo" ${vendedor==='Rodrigo'?'selected':''}>Rodrigo</option>
+        <option value="Jeni" ${vendedor==='Jeni'?'selected':''}>Jeni</option>
+        <option value="Matheus" ${vendedor==='Matheus'?'selected':''}>Matheus</option>
+      </select>
     </div>
     <div class="ftabs" style="margin-bottom:12px">
       ${filtros.map(f=>`<div class="ftab${filtro===f.key?' active':''}" onclick="window._cobFiltro='${f.key}';renderCobrancas()">${f.label}</div>`).join('')}
