@@ -527,7 +527,7 @@ let state = {
   totals: {vendas:0, recebido:0, saldo:0}, loaded: false
 };
 let cliFilter = 'todos', rankFilter = 'saldo';
-const APP_VERSION = 'v38.2';
+const APP_VERSION = 'v38.3';
 // Parsear valor BR: "50,50" ou "50.50" -> 50.50
 function parseValorInput(s) {
   if (!s) return 0;
@@ -872,9 +872,20 @@ function renderCobrancas() {
       if (!pagouNoPeriodo) {
         // Último recebimento para info
         const sorted = [...recebimentos].sort((a,b) => parseD(b.data)-parseD(a.data));
-        const ultData = sorted[0]?.data || '—';
+        const ultData  = sorted[0]?.data  || '—';
         const ultValor = sorted[0]?.valor || 0;
-        items.push({nome, saldo: sum.s, ultData, ultValor, tv: sum.tv});
+
+        // Parcela atual: próxima em aberto (falta > limite)
+        const parcelas = det?.parcelas || [];
+        let parcelaAtual = 0;
+        for (const p of parcelas) {
+          const falta = round2(p.valor - p.pago);
+          if (falta > limite) { parcelaAtual = falta; break; }
+        }
+        // Se não achou parcela (cliente sem parcelas fixas), usar saldo
+        if (!parcelaAtual) parcelaAtual = sum.s;
+
+        items.push({nome, saldo: sum.s, ultData, ultValor, tv: sum.tv, parcelaAtual});
       }
     }
     items.sort((a,b) => b.saldo - a.saldo);
@@ -936,11 +947,14 @@ function renderCobrancas() {
             <div class="cob-detalhe">Último receb: ${c.ultData}${c.ultValor ? ' · ' + BRL(c.ultValor) : ''}</div>
           </div>
           <div class="cob-valor">
-            <div class="cob-val" style="color:var(--red)">${BRL(c.saldo)}</div>
-            <div class="cob-tag" style="color:var(--light)">em aberto</div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+              <div class="cob-val" style="color:var(--red)">${BRL(c.saldo)}</div>
+              <div style="font-size:9px;color:var(--light);text-transform:uppercase;letter-spacing:.5px">saldo total</div>
+              ${c.parcelaAtual !== c.saldo ? `<div class="cob-val" style="color:var(--amber);font-size:14px">${BRL(c.parcelaAtual)}</div><div style="font-size:9px;color:var(--light);text-transform:uppercase;letter-spacing:.5px">parcela</div>` : ''}
+            </div>
           </div>
         </div>
-        <button class="cob-quick-btn" onclick="event.stopPropagation();quickReceber('${c.nome.replace(/'/g,"\'")}',${c.saldo})">↓ Registrar recebimento de ${BRL(c.saldo)}</button>
+        <button class="cob-quick-btn" onclick="event.stopPropagation();quickReceber('${c.nome.replace(/'/g,"\'")}',${c.parcelaAtual})">↓ Registrar recebimento de ${BRL(c.parcelaAtual)}</button>
       </div>`).join('');
   } else {
     cards = items.map(c => {
